@@ -1,0 +1,66 @@
+[package]
+name = "motor-mixers"
+version = "0.1.0"
+edition = "2024"
+authors = ["Martin Budden"]
+license = "MIT OR Apache-2.0"
+
+
+[features]
+# cargo build --features rp2040 
+#default = ["rp2040"]
+#default = ["stm32"]
+#default = ["esp32"]
+stm32 = ["embassy-stm32"]
+rp2040 = ["embassy-rp"]
+esp32 = ["esp-idf-hal"]
+embassy-rp = ["dep:embassy-rp"]
+embassy-stm32 = ["dep:embassy-stm32"]
+#esp32 = ["esp-idf-hal", "esp-hal-embassy", "esp-backtrace", "esp-println"]
+# NOTE: feature names taken directly from c++ library #defines, need to ascertain the Rust naming convention
+LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_ROLL_PITCH = []
+LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_YAW = []
+
+[dependencies]
+# Use embedded-hal for I2C/SPI traits
+embedded-hal = "1.0.0"
+# Embedded HAL traits (often re-exported by embassy-rp)
+embedded-hal-async = "1.0.0"
+# Example: Add a specific sensor driver if needed
+# mpu9250 = "0.25.0"
+# bmi160 = "0.3.0"
+# imu-fusion = "0.2.6"
+# imu-calib = "0.1.0"   
+
+
+# Core Embassy executor and concurrency primitives
+embassy-executor = { version = "0.9", features = ["executor-thread"] }
+embassy-sync = "0.7.2"
+embassy-time = "0.5.0"
+
+# Hardware-specific Embassy HAL (example for Raspberry Pi RP2040)
+embassy-rp = { version = "0.9.0", optional = true, features = ["rp2040", "time-driver", "rt"] }   
+embassy-stm32 = { version = "0.5.0", optional = true, features = ["stm32f407vg", "time-driver-any"] } 
+# embassy-stm32 = { version = "0.8", optional = true, features = ["stm32f407vg", "time-driver"] }   
+# embassy-stm32 = { version = "0.5.0", optional = true }
+# embassy-esp32 = { version = "0.8", optional = true }
+esp-idf-hal = { version = "0.46.2", optional=true }   
+
+# For logging and panic handling
+panic-probe = { version = "1.0.0", features = ["print-defmt"] }
+# STM32/RP2040 logging
+defmt = "1.0.1"
+defmt-rtt = "1.1.0"
+# ESP32 logging
+# esp-println = { version = "0.16.1", optional = true, features = ["log"] }
+log = "0.4"
+
+cfg-if = "1.0"   
+
+strum = "0.28.0"
+strum_macros = "0.28.0"
+
+vector_quaternion_matrix = { git = "https://github.com/martinbudden/Crate-vector_quaternion_matrix" }
+
+[dev-dependencies]
+approx = "0.5.1"   
