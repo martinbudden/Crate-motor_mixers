@@ -5,6 +5,7 @@
 #![deny(unused_must_use)]
 
 pub mod dshot_codec;
+pub mod dynamic_idle_controller;
 pub mod mixers;
 pub mod motor_mixer_quad_x_pwm;
 pub mod motor_mixer_quad_x_pwm_drivers;

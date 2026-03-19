@@ -256,10 +256,11 @@ mod tests {
 
     //fn is_normal<T: Sized + Send + Sync + Unpin>() {}
 
+    fn is_normal<T: Sized + Send + Sync + Unpin>() {}
+
     #[test]
     fn normal_types() {
-        //is_normal::<MotorMixerCommands>();
-        //is_normal::<MotorMixerParameters>();
+        is_normal::<DshotCodec>();
     }
     #[test]
     fn dshot_quintets() {

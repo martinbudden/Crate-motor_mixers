@@ -69,6 +69,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "assert_float_eq"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd9777fd8234cccd34019d9e26d70c8247f9baf24c8fdc0b56c548cf943af2ed"
+
+[[package]]
 name = "atomic-waker"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1074,6 +1080,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "filters"
+version = "0.1.0"
+source = "git+https://github.com/martinbudden/Crate-filters#1479d64c8449834fce2e87ea5052541c6f679221"
+dependencies = [
+ "num-traits",
+ "vector_quaternion_matrix",
+]
+
+[[package]]
 name = "find-msvc-tools"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1510,6 +1525,7 @@ name = "motor-mixers"
 version = "0.1.0"
 dependencies = [
  "approx",
+ "assert_float_eq",
  "cfg-if",
  "defmt",
  "defmt-rtt",
@@ -1521,8 +1537,10 @@ dependencies = [
  "embedded-hal 1.0.0",
  "embedded-hal-async",
  "esp-idf-hal",
+ "filters",
  "log",
  "panic-probe",
+ "pid_controller",
  "strum 0.28.0",
  "strum_macros 0.28.0",
  "vector_quaternion_matrix",
@@ -1679,6 +1697,16 @@ name = "pico-args"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5be167a7af36ee22fe3115051bc51f6e6c7054c9348e28deb4f49bd6f705a315"
+
+[[package]]
+name = "pid_controller"
+version = "0.1.0"
+source = "git+https://github.com/martinbudden/Crate-pid_controller#7b1a5d595ea4a2236651f3bf40ea837a0e39f5b4"
+dependencies = [
+ "assert_float_eq",
+ "filters",
+ "num-traits",
+]
 
 [[package]]
 name = "pin-project-lite"
