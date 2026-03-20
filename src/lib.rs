@@ -6,15 +6,20 @@
 
 pub mod dshot_codec;
 pub mod dynamic_idle_controller;
-pub mod mixers;
-pub mod motor_mixer_quad_x_pwm;
-pub mod motor_mixer_quad_x_pwm_drivers;
-pub mod motor_mixers;
 
-pub use mixers::{
-    MotorMixer, MotorMixerCommands, MotorMixerCommandsDps, MotorMixerDriver, MotorMixerParameters, MotorMixerState,
+pub mod mixer;
+pub mod mixer_calculations;
+pub mod mixer_config;
+pub mod mixer_quad_x_pwm;
+pub mod mixer_quad_x_pwm_drivers;
+
+pub use mixer::{MotorMixer, MotorMixerDriver, MotorMixerState};
+
+pub use mixer_config::{
+    MixerConfig, MixerType, MotorConfig, MotorDeviceConfig, MotorMixerCommands, MotorMixerCommandsDps,
+    MotorMixerParameters, ServoConfig, ServoDeviceConfig,
 };
 
-pub use motor_mixers::{mix_airplane, mix_bicopter, mix_hex_x, mix_quad_x, mix_tricopter, mix_wing};
+pub use mixer_calculations::{mix_airplane, mix_bicopter, mix_hex_x, mix_quad_x, mix_tricopter, mix_wing};
 
-pub use motor_mixer_quad_x_pwm::MotorMixerQuadXPwm;
+pub use mixer_quad_x_pwm::MotorMixerQuadXPwm;

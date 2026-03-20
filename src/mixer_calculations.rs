@@ -146,13 +146,14 @@ pub fn mix_quad_x(commands: MotorMixerCommands, params: &mut MotorMixerParameter
     ];
 
     //#if !defined(LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_ROLL_PITCH)
+
     // Check for overshoot caused by roll and pitch.
     // If there is overshoot, we can just clamp the output, since this will just reduce the magnitude of the command
     // without without affecting the other axes (because of the symmetry of the QuadX).
-
     for output in &mut outputs[..] {
         *output = output.clamp(params.motor_output_min, params.motor_output_max);
     }
+
     //#endif // LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_ROLL_PITCH
 
     outputs[BACK_RIGHT] += commands.yaw;
@@ -161,6 +162,7 @@ pub fn mix_quad_x(commands: MotorMixerCommands, params: &mut MotorMixerParameter
     outputs[FRONT_LEFT] += commands.yaw;
 
     //#if !defined(LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_YAW)
+
     // Now check if there is overshoot due to yaw
     // We cannot simply clamp the offending outputs, since this may cause result in a change in the overall
     // vertical thrust (ie a "yaw jump").
@@ -198,6 +200,7 @@ pub fn mix_quad_x(commands: MotorMixerCommands, params: &mut MotorMixerParameter
             outputs[FRONT_LEFT] += yaw_delta;
         }
     }
+
     //#endif // LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_YAW)
 
     outputs
@@ -247,14 +250,16 @@ pub fn mix_hex_x(commands: MotorMixerCommands, params: &mut MotorMixerParameters
     params.undershoot = 0.0;
 
     //#if !defined(LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_ROLL_PITCH)
+
     // Check for overshoot caused by pitch.
     // If there is overshoot, we can just clamp the output, since this will just reduce the magnitude of the command
     // without without affecting the other axes (because of the symmetry of the HexX).
     // NOTE: motors outputs[4] and outputs[5] are not clamped, since they have no effect on pitch.
     outputs[0] = outputs[0].clamp(params.motor_output_min, params.motor_output_max);
-    outputs[0] = outputs[1].clamp(params.motor_output_min, params.motor_output_max);
-    outputs[0] = outputs[2].clamp(params.motor_output_min, params.motor_output_max);
-    outputs[0] = outputs[4].clamp(params.motor_output_min, params.motor_output_max);
+    outputs[1] = outputs[1].clamp(params.motor_output_min, params.motor_output_max);
+    outputs[2] = outputs[2].clamp(params.motor_output_min, params.motor_output_max);
+    outputs[3] = outputs[4].clamp(params.motor_output_min, params.motor_output_max);
+
     //#endif // LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_ROLL_PITCH
 
     outputs[0] -= SIN30 * commands.roll;
@@ -265,6 +270,7 @@ pub fn mix_hex_x(commands: MotorMixerCommands, params: &mut MotorMixerParameters
     outputs[5] += commands.roll;
 
     //#if !defined(LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_ROLL_PITCH)
+
     // If we have overshoot caused by roll we cannot just clamp the output, since this will affect the yaw
     if commands.roll > 0.0 {
         // check if m2, m3, or m5 will have output less than params.motor_output_min
@@ -306,6 +312,7 @@ pub fn mix_hex_x(commands: MotorMixerCommands, params: &mut MotorMixerParameters
             outputs[5] += roll_delta;
         }
     }
+
     //#endif // LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_ROLL_PITCH
 
     outputs[0] -= commands.yaw;

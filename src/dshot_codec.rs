@@ -98,19 +98,19 @@ impl DshotCodec {
     pub const NIBBLE_TO_QUINTET: [u8; 16] =
         [0x19, 0x1B, 0x12, 0x13, 0x1D, 0x15, 0x16, 0x17, 0x1A, 0x09, 0x0A, 0x0B, 0x1E, 0x0D, 0x0E, 0x0F];
 
-    pub fn decode_erpm(value: u16) -> u16 {
+    pub fn decode_erpm(value: u16) -> Result<u16, u16> {
         let mut value = value;
         // eRPM range
         if value == 0x0FFF {
-            return 0;
+            return Ok(0);
         }
         let m: u16 = value & 0x01FF;
         let e: u16 = (value & 0xFE00) >> 9;
         value = m << e;
         if value == 0 {
-            return Self::TELEMETRY_INVALID;
+            return Err(Self::TELEMETRY_INVALID);
         }
-        value
+        Ok(value)
     }
 
     fn decode_telemetry_frame(value: u16) -> Result<(u16, u16), u16> {
@@ -206,6 +206,7 @@ impl DshotCodec {
     pub fn decode_samples_slice(_samples: &[u32], _telemetry_type: &mut u16) -> u32 {
         0
     }
+
     // see [DSHOT - the missing Handbook](https://brushlesswhoop.com/dshot-and-bidirectional-dshot/)
     // for a good description of these conversions
     pub fn erpm_to_gcr20(value: u16) -> u32 {
@@ -215,6 +216,7 @@ impl DshotCodec {
         ret |= (Self::NIBBLE_TO_QUINTET[((value >> 12) & 0x1F) as usize] as u32) << 15;
         ret
     }
+
     /// Map the GCR to a 21 bit value, this new value starts with a 0 and the rest of the bits are set by the following two rules:
     ///    1. If the current input bit in GCR data is a 1 then the output bit is the inverse of the previous output bit
     ///    2. If the current input bit in GCR data is a 0 then the output bit is the same as the previous output
@@ -237,9 +239,11 @@ impl DshotCodec {
         }
         ret
     }
+
     pub fn gcr21_to_gcr20(value: u32) -> u32 {
         value ^ (value >> 1)
     }
+
     pub fn gcr20_to_erpm(value: u32) -> u16 {
         let mut ret: u32 = Self::QUINTET_TO_NIBBLE[(value & 0x1F) as usize];
         ret |= Self::QUINTET_TO_NIBBLE[((value >> 5) & 0x1F) as usize] << 4;
