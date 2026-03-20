@@ -90,10 +90,7 @@ pub struct MixerConfig {
 
 impl MixerConfig {
     fn new() -> Self {
-        Self {
-            mixer_type: 0,
-            yaw_motors_reversed: false,
-        }
+        Self { mixer_type: 0, yaw_motors_reversed: false }
     }
 }
 
@@ -194,10 +191,7 @@ pub struct ServoDeviceConfig {
 
 impl ServoDeviceConfig {
     fn new() -> Self {
-        Self {
-            servo_center_pulse: 1500,
-            servo_pwm_rate: 50,
-        }
+        Self { servo_center_pulse: 1500, servo_pwm_rate: 50 }
     }
 }
 

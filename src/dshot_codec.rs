@@ -228,11 +228,7 @@ impl DshotCodec {
         while mask != 0 {
             ret <<= 1;
             let input_bit = value & mask;
-            let output_bit = if input_bit != 0 {
-                !previous_output_bit
-            } else {
-                previous_output_bit
-            };
+            let output_bit = if input_bit != 0 { !previous_output_bit } else { previous_output_bit };
             previous_output_bit = output_bit;
             ret |= output_bit;
             mask >>= 1;
