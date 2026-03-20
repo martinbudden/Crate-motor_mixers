@@ -85,3 +85,20 @@ pub trait MotorMixer {
 pub trait MotorMixerDriver {
     fn write_to_motor(&mut self, index: u8, value: f32);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn is_normal<T: Sized + Send + Sync + Unpin+ Copy + Clone + Default+ PartialEq>() {}
+
+    #[test]
+    fn normal_types() {
+        is_normal::<MotorMixerState>();
+    }
+    #[test]
+    fn new() {
+        let state = MotorMixerState::new();
+        assert_eq!(3, state.mixer_type);
+    }
+}

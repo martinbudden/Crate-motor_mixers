@@ -1106,10 +1106,10 @@ dependencies = [
 [[package]]
 name = "filters"
 version = "0.1.0"
-source = "git+https://github.com/martinbudden/Crate-filters#1479d64c8449834fce2e87ea5052541c6f679221"
+source = "git+https://github.com/martinbudden/Crate-filters#b76458b21c1ab7c6dfac2b39a85daf17e4b20b92"
 dependencies = [
  "num-traits",
- "vector_quaternion_matrix",
+ "vector-quaternion-matrix",
 ]
 
 [[package]]
@@ -1120,9 +1120,9 @@ checksum = "5baebc0774151f905a1a2cc41989300b1e6fbb29aff0ceffa1064fdd3088d582"
 
 [[package]]
 name = "fixed"
-version = "1.30.0"
+version = "1.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c566da967934c6c7ee0458a9773de9b2a685bd2ce26a3b28ddfc740e640182f5"
+checksum = "9af2cbf772fa6d1c11358f92ef554cb6b386201210bcf0e91fb7fba8a907fb40"
 dependencies = [
  "az",
  "bytemuck",
@@ -1419,9 +1419,9 @@ dependencies = [
 
 [[package]]
 name = "itoa"
-version = "1.0.17"
+version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92ecc6618181def0457392ccd0ee51198e065e016d1d527a7ac1b6dc7c1f09d2"
+checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "js-sys"
@@ -1607,10 +1607,10 @@ dependencies = [
  "filters",
  "log",
  "panic-probe",
- "pid_controller",
+ "pid-controller",
  "strum 0.28.0",
  "strum_macros 0.28.0",
- "vector_quaternion_matrix",
+ "vector-quaternion-matrix",
 ]
 
 [[package]]
@@ -1775,12 +1775,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5be167a7af36ee22fe3115051bc51f6e6c7054c9348e28deb4f49bd6f705a315"
 
 [[package]]
-name = "pid_controller"
+name = "pid-controller"
 version = "0.1.0"
-source = "git+https://github.com/martinbudden/Crate-pid_controller#7b1a5d595ea4a2236651f3bf40ea837a0e39f5b4"
+source = "git+https://github.com/martinbudden/Crate-pid_controller#ffbf363ce7893c5c539f87f2afb1cfd8b8ec19e6"
 dependencies = [
- "assert_float_eq",
- "filters",
  "num-traits",
 ]
 
@@ -2507,9 +2505,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77439c1b53d2303b20d9459b1ade71a83c716e3f9c34f3228c00e6f185d6c002"
 
 [[package]]
-name = "vector_quaternion_matrix"
+name = "vector-quaternion-matrix"
 version = "0.1.0"
-source = "git+https://github.com/martinbudden/Crate-vector_quaternion_matrix#5c9d50b44a5f28444c48f591f3c40482e3990446"
+source = "git+https://github.com/martinbudden/Crate-vector_quaternion_matrix#a6064a87bbe6e86e109726b129b5c022679dcc27"
 dependencies = [
  "bytemuck",
  "libm",
@@ -2905,18 +2903,18 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.8.42"
+version = "0.8.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2578b716f8a7a858b7f02d5bd870c14bf4ddbbcf3a4c05414ba6503640505e3"
+checksum = "efbb2a062be311f2ba113ce66f697a4dc589f85e78a4aea276200804cea0ed87"
 dependencies = [
  "zerocopy-derive",
 ]
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.8.42"
+version = "0.8.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e6cc098ea4d3bd6246687de65af3f920c430e236bee1e3bf2e441463f08a02f"
+checksum = "0e8bc7269b54418e7aeeef514aa68f8690b8c0489a06b0136e5f57c4c5ccab89"
 dependencies = [
  "proc-macro2",
  "quote",

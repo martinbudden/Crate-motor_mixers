@@ -7,6 +7,7 @@
         "Betaflight",
         "bicopter",
         "bindgen",
+        "Biquad",
         "bitfield",
         "bitflags",
         "bitshift",

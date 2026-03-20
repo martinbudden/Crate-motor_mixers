@@ -90,7 +90,7 @@ pub struct MixerConfig {
 
 impl MixerConfig {
     fn new() -> Self {
-        Self { mixer_type: 0, yaw_motors_reversed: false }
+        Self { mixer_type: MixerType::QuadX as u8, yaw_motors_reversed: true }
     }
 }
 
@@ -223,5 +223,29 @@ impl ServoConfig {
 impl Default for ServoConfig {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn is_normal<T: Sized + Send + Sync + Unpin+ Copy + Clone + Default+ PartialEq>() {}
+
+    #[test]
+    fn normal_types() {
+        is_normal::<MotorMixerCommands>();
+        is_normal::<MotorMixerCommandsDps>();
+        is_normal::<MotorMixerParameters>();
+        is_normal::<MixerConfig>();
+        is_normal::<MotorDeviceConfig>();
+        is_normal::<MotorConfig>();
+        is_normal::<ServoDeviceConfig>();
+        is_normal::<ServoConfig>();
+    }
+    #[test]
+    fn new() {
+        let config = MixerConfig::new();
+        assert_eq!(3, config.mixer_type);
     }
 }

@@ -61,7 +61,7 @@ strum = "0.28.0"
 strum_macros = "0.28.0"
 
 vector-quaternion-matrix = { git = "https://github.com/martinbudden/Crate-vector_quaternion_matrix" }
-pid_controller = { git = "https://github.com/martinbudden/Crate-pid_controller" }
+pid-controller = { git = "https://github.com/martinbudden/Crate-pid_controller" }
 filters = { git = "https://github.com/martinbudden/Crate-filters" }
 
 [dev-dependencies]
