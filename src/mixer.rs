@@ -41,7 +41,7 @@ pub trait MotorMixer {
     fn state(&self) -> &MotorMixerState;
     fn state_mut(&mut self) -> &mut MotorMixerState;
 
-    fn output_to_motors(&mut self, commands_dps: MotorMixerCommandsDps, delta_t: f32);
+    fn output_to_motors(&mut self, commands_dps: MotorMixerCommandsDps);
 
     fn motors_is_on(&self) -> bool {
         self.state().motors_is_on

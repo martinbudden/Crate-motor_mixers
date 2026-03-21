@@ -48,7 +48,7 @@ impl MotorMixer for MotorMixerQuadXPwm {
     // Calculate and output motor mix.
     // Called by the scheduler when the updateOutputsUsingPIDs function running in the AHRS task SIGNALs that output data is available.
     // It is typically called at frequency of between 1000Hz and 8000Hz, so it has to be FAST.
-    fn output_to_motors(&mut self, commands_dps: MotorMixerCommandsDps, _delta_t: f32) {
+    fn output_to_motors(&mut self, commands_dps: MotorMixerCommandsDps) {
         // ALWAYS write 0.0 to the motors if they are not switched on, as a safety precaution
         if !self.motors_is_on() || !self.motors_is_armed() {
             for ii in 0..self.outputs.len() {
@@ -75,7 +75,9 @@ impl MotorMixer for MotorMixerQuadXPwm {
             self.write_to_motor(ii as u8, self.outputs[ii]);
         }
     }
+
 }
+
 
 #[cfg(test)]
 mod tests {
