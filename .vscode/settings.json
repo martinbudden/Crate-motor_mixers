@@ -86,6 +86,7 @@
         "thiserror",
         "tricopter",
         "typenum",
+        "typestate",
         "ulps",
         "USRH",
         "USRL",
