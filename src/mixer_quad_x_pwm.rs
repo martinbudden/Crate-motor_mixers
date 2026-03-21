@@ -75,9 +75,7 @@ impl MotorMixer for MotorMixerQuadXPwm {
             self.write_to_motor(ii as u8, self.outputs[ii]);
         }
     }
-
 }
-
 
 #[cfg(test)]
 mod tests {

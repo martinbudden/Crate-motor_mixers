@@ -1,4 +1,4 @@
-pub use filters::FilterPt1;
+pub use filters::FilterPt1f32;
 pub use pid_controller::{PidConstants, PidController, PidError};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -51,7 +51,7 @@ pub struct DynamicIdleControllerState {
     max_increase: f32,
     // dynamic_idle_max_increase_delay_k :f32,
     pid: PidController<f32>, // PID to dynamic idle, ie to ensure slowest motor does not go below min RPS
-    dterm_filter: FilterPt1<f32>,
+    dterm_filter: FilterPt1f32<f32>,
     config: DynamicIdleControllerConfig,
 }
 
@@ -63,7 +63,7 @@ impl DynamicIdleControllerState {
             max_increase: 0.0,
             // dynamic_idle_max_increase_delay_k :f32,
             pid: PidController::new(1.0, 0.0, 0.0), // PID to dynamic idle, ie to ensure slowest motor does not go below min RPS
-            dterm_filter: FilterPt1::default(),
+            dterm_filter: FilterPt1f32::default(),
             config: DynamicIdleControllerConfig::default(),
         }
     }

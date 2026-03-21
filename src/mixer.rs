@@ -90,7 +90,7 @@ pub trait MotorMixerDriver {
 mod tests {
     use super::*;
 
-    fn is_normal<T: Sized + Send + Sync + Unpin+ Copy + Clone + Default+ PartialEq>() {}
+    fn is_normal<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
 
     #[test]
     fn normal_types() {

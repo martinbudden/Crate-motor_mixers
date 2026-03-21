@@ -1,6 +1,6 @@
-use filters::{BiquadFilter, FilterPt1};
+use embassy_time::{Instant, Timer};
+use filters::{BiquadFilterf32, FilterPt1f32};
 use vector_quaternion_matrix::Vector3df32;
-use embassy_time::{Timer,Instant};
 
 pub const RPM_FILTER_HARMONICS_COUNT: usize = 3;
 pub const MAX_MOTOR_COUNT: usize = 8;
@@ -47,18 +47,13 @@ pub struct RpmFiltersMotorState {
 
 // NOTE: I have considered the typestate patter an have elected not to use it.
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
 enum State {
+    #[default]
     Stopped,
     Fundamental,
     SecondHarmonic,
     ThirdHarmonic,
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self::Stopped
-    }
 }
 
 impl From<u8> for State {
@@ -99,8 +94,8 @@ pub struct RpmFiltersState {
     third_of_max_frequency_hz: f32,
     fade_range_hz: f32,
     q: f32,
-    filters: [[BiquadFilter<Vector3df32>; RPM_FILTER_HARMONICS_COUNT]; MAX_MOTOR_COUNT],
-    motor_rpm_filters: [FilterPt1<f32>; MAX_MOTOR_COUNT],
+    filters: [[BiquadFilterf32<Vector3df32>; RPM_FILTER_HARMONICS_COUNT]; MAX_MOTOR_COUNT],
+    motor_rpm_filters: [FilterPt1f32<f32>; MAX_MOTOR_COUNT],
 }
 
 const FUNDAMENTAL: usize = 0;
@@ -120,8 +115,8 @@ impl RpmFiltersState {
             third_of_max_frequency_hz: 0.0,
             fade_range_hz: 50.0,
             q: 0.0,
-            filters: <[[BiquadFilter<Vector3df32>; RPM_FILTER_HARMONICS_COUNT]; MAX_MOTOR_COUNT]>::default(),
-            motor_rpm_filters: <[FilterPt1<f32>; MAX_MOTOR_COUNT]>::default(),
+            filters: <[[BiquadFilterf32<Vector3df32>; RPM_FILTER_HARMONICS_COUNT]; MAX_MOTOR_COUNT]>::default(),
+            motor_rpm_filters: <[FilterPt1f32<f32>; MAX_MOTOR_COUNT]>::default(),
         }
     }
     pub fn set_config(&mut self, config: RpmFiltersConfig) {
@@ -291,8 +286,8 @@ impl RpmFiltersState {
 
     pub async fn set_frequency_hz_iteration_step_async(&mut self) {
         self.set_frequency_hz_iteration_step();
-         Timer::at(Instant::now()).await;
-     }
+        Timer::at(Instant::now()).await;
+    }
 
     pub fn filter(&mut self, input: Vector3df32, motor_index: usize) -> Vector3df32 {
         let mut ret = self.filters[motor_index][FUNDAMENTAL].filter_weighted(input); // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
