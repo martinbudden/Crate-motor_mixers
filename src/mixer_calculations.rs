@@ -1,6 +1,6 @@
 use crate::{MotorMixerCommands, MotorMixerParameters};
 #[allow(unused)]
-use vector_quaternion_matrix::MathMethods;
+use vector_quaternion_matrix::MathFunctions;
 
 pub fn mix_wing(commands: MotorMixerCommands) -> [f32; 3] {
     let outputs: [f32; 3] = [
