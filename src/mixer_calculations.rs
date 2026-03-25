@@ -1,6 +1,4 @@
 use crate::{MotorMixerCommands, MotorMixerParameters};
-#[allow(unused)]
-use vector_quaternion_matrix::MathFunctions;
 
 pub fn mix_wing(commands: MotorMixerCommands) -> [f32; 3] {
     let outputs: [f32; 3] = [
@@ -373,12 +371,13 @@ mod tests {
 
     use super::*;
 
-    fn is_normal<T: Sized + Send + Sync + Unpin>() {}
+    fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
+    fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
 
     #[test]
     fn normal_types() {
-        is_normal::<MotorMixerCommands>();
-        is_normal::<MotorMixerParameters>();
+        is_full::<MotorMixerCommands>();
+        is_full::<MotorMixerParameters>();
     }
     #[test]
     fn test_mixer_quad_x_roll() {

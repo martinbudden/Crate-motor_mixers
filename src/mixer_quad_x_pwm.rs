@@ -1,11 +1,11 @@
 use crate::{
-    MotorMixer, MotorMixerCommands, MotorMixerCommandsDps, MotorMixerDriver, MotorMixerParameters, MotorMixerState,
+    MotorMixer, MotorMixerCommands, MotorMixerCommandsDps, MotorMixerCommon, MotorMixerDriver, MotorMixerParameters,
     mix_quad_x,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MotorMixerQuadXPwm {
-    state: MotorMixerState,
+    state: MotorMixerCommon,
     max_duty: u32,
     motor_count: u8,
     outputs: [f32; 4],
@@ -14,7 +14,7 @@ pub struct MotorMixerQuadXPwm {
 impl MotorMixerQuadXPwm {
     pub fn new() -> Self {
         Self {
-            state: MotorMixerState::default(), // more idiomatic than calling new
+            state: MotorMixerCommon::default(), // more idiomatic than calling new
             max_duty: 255,
             motor_count: 4,
             outputs: [0.0, 0.0, 0.0, 0.0],
@@ -38,10 +38,10 @@ impl MotorMixerDriver for MotorMixerQuadXPwm {
 }
 
 impl MotorMixer for MotorMixerQuadXPwm {
-    fn state(&self) -> &MotorMixerState {
+    fn common(&self) -> &MotorMixerCommon {
         &self.state
     }
-    fn state_mut(&mut self) -> &mut MotorMixerState {
+    fn common_mut(&mut self) -> &mut MotorMixerCommon {
         &mut self.state
     }
 
@@ -81,11 +81,12 @@ impl MotorMixer for MotorMixerQuadXPwm {
 mod tests {
     use super::*;
 
-    fn is_normal<T: Sized + Send + Sync + Unpin>() {}
+    fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
+    fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
 
     #[test]
     fn normal_types() {
-        is_normal::<MotorMixerQuadXPwm>();
+        is_full::<MotorMixerQuadXPwm>();
     }
     #[test]
     fn new() {

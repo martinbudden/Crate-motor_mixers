@@ -15,7 +15,7 @@ pub mod mixer_quad_x_pwm_drivers;
 
 pub mod rpm_filters;
 
-pub use mixer::{MotorMixer, MotorMixerDriver, MotorMixerState};
+pub use mixer::{MotorMixer, MotorMixerCommon, MotorMixerDriver};
 
 pub use mixer_config::{
     MixerConfig, MixerType, MotorConfig, MotorDeviceConfig, MotorMixerCommands, MotorMixerCommandsDps,
@@ -26,4 +26,4 @@ pub use mixer_calculations::{mix_airplane, mix_bicopter, mix_hex_x, mix_quad_x, 
 
 pub use mixer_quad_x_pwm::MotorMixerQuadXPwm;
 
-pub use rpm_filters::{RpmFilters, RpmFiltersConfig, RpmFiltersState};
+pub use rpm_filters::{RpmFilterBank, RpmFilterBankConfig, RpmFilters};

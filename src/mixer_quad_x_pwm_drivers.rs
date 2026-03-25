@@ -162,3 +162,21 @@ impl MotorDriver {
 //type PwmType = SimplePwm<'static, embassy_esp32::peripherals::LED_PWM>;
 
 }
+
+#[cfg(test)]
+mod tests {
+    #[allow(unused)]
+    use super::*;
+
+    fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
+    #[cfg(feature = "rp2040")]
+    fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
+
+    #[test]
+    fn normal_types() {
+        #[cfg(feature = "rp2040")]
+        is_full::<MotorDriver>();
+    }
+    #[test]
+    fn new() {}
+}

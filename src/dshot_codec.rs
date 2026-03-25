@@ -1,5 +1,5 @@
 /// DShot Encoder/Decoder
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct DshotCodec;
 
 impl DshotCodec {
@@ -254,13 +254,12 @@ mod tests {
 
     use super::*;
 
-    //fn is_normal<T: Sized + Send + Sync + Unpin>() {}
-
-    fn is_normal<T: Sized + Send + Sync + Unpin>() {}
+    fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
+    fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
 
     #[test]
     fn normal_types() {
-        is_normal::<DshotCodec>();
+        is_full::<DshotCodec>();
     }
     #[test]
     fn dshot_quintets() {

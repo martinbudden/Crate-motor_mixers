@@ -1,12 +1,13 @@
 use embassy_time::{Instant, Timer};
-use filters::{BiquadFilterf32, FilterPt1f32};
+use filters::{BiquadFilterf32, FilterSignal, Pt1Filterf32};
+
 use vector_quaternion_matrix::Vector3df32;
 
 pub const RPM_FILTER_HARMONICS_COUNT: usize = 3;
 pub const MAX_MOTOR_COUNT: usize = 8;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct RpmFiltersConfig {
+pub struct RpmFilterBankConfig {
     pub rpm_filter_fade_range_hz: u16, // range in which notch filters fade down to min_hz
     pub rpm_filter_q: u16,             // Q of the notch filters
     pub rpm_filter_lpf_hz: u16,        // LPF cutoff (from motor rpm converted to Hz)
@@ -16,7 +17,7 @@ pub struct RpmFiltersConfig {
     pub motor_count: u8,
 }
 
-impl RpmFiltersConfig {
+impl RpmFilterBankConfig {
     pub fn new() -> Self {
         Self {
             rpm_filter_fade_range_hz: 50,       // range in which notch filters fade down to min_hz
@@ -30,7 +31,7 @@ impl RpmFiltersConfig {
     }
 }
 
-impl Default for RpmFiltersConfig {
+impl Default for RpmFilterBankConfig {
     fn default() -> Self {
         Self::new()
     }
@@ -82,9 +83,10 @@ impl StateMachineState {
     }
 }
 
+/// Bank of RpmFilters, one for each motor.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct RpmFiltersState {
-    config: RpmFiltersConfig,
+pub struct RpmFilterBank {
+    config: RpmFilterBankConfig,
     looptime_seconds: f32,
     state: StateMachineState,
     weights: [f32; RPM_FILTER_HARMONICS_COUNT],
@@ -95,17 +97,17 @@ pub struct RpmFiltersState {
     fade_range_hz: f32,
     q: f32,
     filters: [[BiquadFilterf32<Vector3df32>; RPM_FILTER_HARMONICS_COUNT]; MAX_MOTOR_COUNT],
-    motor_rpm_filters: [FilterPt1f32<f32>; MAX_MOTOR_COUNT],
+    motor_rpm_filters: [Pt1Filterf32<f32>; MAX_MOTOR_COUNT],
 }
 
 const FUNDAMENTAL: usize = 0;
 const SECOND_HARMONIC: usize = 1;
 const THIRD_HARMONIC: usize = 2;
 
-impl RpmFiltersState {
+impl RpmFilterBank {
     pub fn new() -> Self {
         Self {
-            config: RpmFiltersConfig::default(),
+            config: RpmFilterBankConfig::default(),
             looptime_seconds: 0.001,
             state: StateMachineState::default(),
             weights: <[f32; RPM_FILTER_HARMONICS_COUNT]>::default(),
@@ -116,10 +118,10 @@ impl RpmFiltersState {
             fade_range_hz: 50.0,
             q: 0.0,
             filters: <[[BiquadFilterf32<Vector3df32>; RPM_FILTER_HARMONICS_COUNT]; MAX_MOTOR_COUNT]>::default(),
-            motor_rpm_filters: <[FilterPt1f32<f32>; MAX_MOTOR_COUNT]>::default(),
+            motor_rpm_filters: <[Pt1Filterf32<f32>; MAX_MOTOR_COUNT]>::default(),
         }
     }
-    pub fn set_config(&mut self, config: RpmFiltersConfig) {
+    pub fn set_config(&mut self, config: RpmFilterBankConfig) {
         self.config = config;
 
         self.q = config.rpm_filter_q as f32 * 0.01;
@@ -168,7 +170,7 @@ impl RpmFiltersState {
         }
         let mut motor_state = self.state.motor_states[motor_index];
 
-        motor_state.frequency_hz_unclamped = self.motor_rpm_filters[motor_index].filter(frequency_hz);
+        motor_state.frequency_hz_unclamped = self.motor_rpm_filters[motor_index].apply(frequency_hz);
         let frequency_hz = motor_state.frequency_hz_unclamped.clamp(self.min_frequency_hz, self.max_frequency_hz);
 
         let margin_frequency_hz = frequency_hz - self.min_frequency_hz;
@@ -189,7 +191,7 @@ impl RpmFiltersState {
         match self.state.state {
             State::Stopped => {}
             State::Fundamental => {
-                let mut rpm_filter = self.filters[self.state.motor_index][FUNDAMENTAL]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+                let mut rpm_filter = self.filters[self.state.motor_index][FUNDAMENTAL];
                 // omega = frequency * _2PiLoopTimeSeconds
                 // max_frequency < 0.5 / looptime_seconds
                 // max_omega = (0.5 / looptime_seconds) * 2PiLooptimeSeconds = 0.5 * 2PI = PI;
@@ -228,7 +230,7 @@ impl RpmFiltersState {
                     self.weights[SECOND_HARMONIC] = 0.0;
                 } else {
                     self.weights[SECOND_HARMONIC] = self.config.rpm_filter_weights[SECOND_HARMONIC] as f32 * 0.01;
-                    let mut rpm_filter = self.filters[self.state.motor_index][SECOND_HARMONIC]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+                    let mut rpm_filter = self.filters[self.state.motor_index][SECOND_HARMONIC];
                     // sin(2θ) = 2 * sin(θ) * cos(θ)
                     // cos(2θ) = 2 * cos^2(θ) - 1
                     let sin_2_omega = motor_state.sin_omega * motor_state.cos_omega * 2.0;
@@ -251,14 +253,14 @@ impl RpmFiltersState {
                 }
             }
             State::ThirdHarmonic => {
-                let motor_state = self.state.motor_states[self.state.motor_index]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+                let motor_state = self.state.motor_states[self.state.motor_index];
                 if motor_state.frequency_hz_unclamped > self.third_of_max_frequency_hz {
                     // ie 3.0 * frequency_hz_unclamped > _max_frequency_hz
                     // no point filtering the third harmonic if it is above the Nyquist frequency
                     self.weights[THIRD_HARMONIC] = 0.0;
                 } else {
                     self.weights[THIRD_HARMONIC] = self.config.rpm_filter_weights[THIRD_HARMONIC] as f32 * 0.01;
-                    let mut rpm_filter = self.filters[self.state.motor_index][THIRD_HARMONIC]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+                    let mut rpm_filter = self.filters[self.state.motor_index][THIRD_HARMONIC];
                     // sin(3θ) = 3 * sin(θ)   - 4 * sin^3(θ)
                     //         = sin(θ) * ( 3 - 4 * sin^2(θ) )
                     //         = sin(θ) * ( 3 - 4 * (1 - cos^2(θ)) )
@@ -290,10 +292,10 @@ impl RpmFiltersState {
     }
 
     pub fn filter(&mut self, input: Vector3df32, motor_index: usize) -> Vector3df32 {
-        let mut ret = self.filters[motor_index][FUNDAMENTAL].filter_weighted(input); // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+        let mut ret = self.filters[motor_index][FUNDAMENTAL].filter_weighted(input);
 
         if self.weights[SECOND_HARMONIC] != 0.0 {
-            ret = self.filters[motor_index][SECOND_HARMONIC].filter_weighted(input); // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+            ret = self.filters[motor_index][SECOND_HARMONIC].filter_weighted(input);
         };
         if self.weights[THIRD_HARMONIC] != 0.0 {
             ret = self.filters[motor_index][THIRD_HARMONIC].filter_weighted(input);
@@ -302,29 +304,29 @@ impl RpmFiltersState {
     }
 }
 
-impl Default for RpmFiltersState {
+impl Default for RpmFilterBank {
     fn default() -> Self {
         Self::new()
     }
 }
 
 pub trait RpmFilters {
-    fn state(&self) -> &RpmFiltersState;
-    fn state_mut(&mut self) -> &mut RpmFiltersState;
-    fn config(&self) -> &RpmFiltersConfig;
+    fn common(&self) -> &RpmFilterBank;
+    fn common_mut(&mut self) -> &mut RpmFilterBank;
+    fn config(&self) -> &RpmFilterBankConfig;
 
     fn filter(&mut self, value: Vector3df32, motor_index: usize) -> Vector3df32;
 }
 
-impl RpmFilters for RpmFiltersState {
-    fn state(&self) -> &RpmFiltersState {
+impl RpmFilters for RpmFilterBank {
+    fn common(&self) -> &RpmFilterBank {
         self
     }
-    fn state_mut(&mut self) -> &mut RpmFiltersState {
+    fn common_mut(&mut self) -> &mut RpmFilterBank {
         self
     }
-    fn config(&self) -> &RpmFiltersConfig {
-        &self.state().config
+    fn config(&self) -> &RpmFilterBankConfig {
+        &self.common().config
     }
 
     fn filter(&mut self, value: Vector3df32, _motor_index: usize) -> Vector3df32 {
@@ -336,18 +338,19 @@ impl RpmFilters for RpmFiltersState {
 mod tests {
     use super::*;
 
-    fn is_normal<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
+    fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
+    fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
 
     #[test]
     fn normal_types() {
-        is_normal::<RpmFiltersConfig>();
-        is_normal::<RpmFiltersMotorState>();
-        is_normal::<StateMachineState>();
-        is_normal::<RpmFiltersState>();
+        is_full::<RpmFilterBankConfig>();
+        is_full::<RpmFiltersMotorState>();
+        is_full::<StateMachineState>();
+        is_full::<RpmFilterBank>();
     }
     #[test]
     fn new() {
-        let config = RpmFiltersConfig::new();
+        let config = RpmFilterBankConfig::new();
         assert_eq!(50, config.rpm_filter_fade_range_hz);
     }
 }

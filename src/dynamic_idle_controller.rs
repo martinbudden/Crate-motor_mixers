@@ -1,4 +1,4 @@
-pub use filters::FilterPt1f32;
+pub use filters::{FilterSignal, Pt1Filterf32};
 pub use pid_controller::{PidConstants, PidController, PidError};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -40,22 +40,22 @@ impl Default for DynamicIdleControllerConfig {
 ///
 /// Instead we have a PID controller that increases output to the motors as the slowest motor nears the minimum allowed RPM.
 ///
-pub trait DynamicIdleController {
+pub trait DynamicIdleControl {
     fn calculate_speed_increase(&mut self, slowest_motor_hz: f32, delta_t: f32) -> f32;
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct DynamicIdleControllerState {
+pub struct DynamicIdleController {
     task_interval_microseconds: u32,
     minimum_allowed_motor_hz: f32, // minimum motor Hz, dynamically controlled
     max_increase: f32,
     // dynamic_idle_max_increase_delay_k :f32,
     pid: PidController<f32>, // PID to dynamic idle, ie to ensure slowest motor does not go below min RPS
-    dterm_filter: FilterPt1f32<f32>,
+    dterm_filter: Pt1Filterf32<f32>,
     config: DynamicIdleControllerConfig,
 }
 
-impl DynamicIdleControllerState {
+impl DynamicIdleController {
     fn new(task_interval_microseconds: u32) -> Self {
         Self {
             task_interval_microseconds,
@@ -63,7 +63,7 @@ impl DynamicIdleControllerState {
             max_increase: 0.0,
             // dynamic_idle_max_increase_delay_k :f32,
             pid: PidController::new(1.0, 0.0, 0.0), // PID to dynamic idle, ie to ensure slowest motor does not go below min RPS
-            dterm_filter: FilterPt1f32::default(),
+            dterm_filter: Pt1Filterf32::default(),
             config: DynamicIdleControllerConfig::default(),
         }
     }
@@ -101,13 +101,13 @@ impl DynamicIdleControllerState {
     }
 }
 
-impl Default for DynamicIdleControllerState {
+impl Default for DynamicIdleController {
     fn default() -> Self {
         Self::new(1000)
     }
 }
 
-impl DynamicIdleController for DynamicIdleControllerState {
+impl DynamicIdleControl for DynamicIdleController {
     fn calculate_speed_increase(&mut self, slowest_motor_hz: f32, delta_t: f32) -> f32 {
         if self.minimum_allowed_motor_hz == 0.0 {
             // if motors are allowed to stop, then no speed increase is needed
@@ -115,7 +115,7 @@ impl DynamicIdleController for DynamicIdleControllerState {
         }
 
         let slowest_motor_hz_delta_filtered =
-            self.dterm_filter.filter(slowest_motor_hz - self.pid.previous_measurement());
+            self.dterm_filter.apply(slowest_motor_hz - self.pid.previous_measurement());
         let speed_increase = self.pid.update_delta(slowest_motor_hz, slowest_motor_hz_delta_filtered, delta_t);
 
         /*if (debug.get_mode() == DEBUG_DYN_IDLE) {
@@ -134,12 +134,13 @@ mod tests {
     use super::*;
     use assert_float_eq::assert_f32_near;
 
-    fn is_normal<T: Sized + Send + Sync + Unpin>() {}
+    fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
+    fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
 
     #[test]
     fn normal_types() {
-        is_normal::<DynamicIdleControllerConfig>();
-        is_normal::<DynamicIdleControllerState>();
+        is_full::<DynamicIdleControllerConfig>();
+        is_full::<DynamicIdleController>();
     }
     #[test]
     fn dynamic_idle_controller() {
@@ -151,7 +152,7 @@ mod tests {
             dyn_idle_d_gain: 50,
             dyn_idle_max_increase: 150,
         };
-        let mut dynamic_idle_controller = DynamicIdleControllerState::new(TASK_INTERVAL_MICROSECONDS);
+        let mut dynamic_idle_controller = DynamicIdleController::new(TASK_INTERVAL_MICROSECONDS);
         dynamic_idle_controller.set_config(dynamic_idle_controller_config);
         const DELTA_T: f32 = TASK_INTERVAL_MICROSECONDS as f32 * 0.000001;
 
@@ -177,7 +178,7 @@ mod tests {
             dyn_idle_d_gain: 0,
             dyn_idle_max_increase: 150,
         };
-        let mut dynamic_idle_controller = DynamicIdleControllerState::new(TASK_INTERVAL_MICROSECONDS);
+        let mut dynamic_idle_controller = DynamicIdleController::new(TASK_INTERVAL_MICROSECONDS);
         dynamic_idle_controller.set_config(dynamic_idle_controller_config);
         let delta_t = TASK_INTERVAL_MICROSECONDS as f32 * 0.000001;
 

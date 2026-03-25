@@ -230,18 +230,19 @@ impl Default for ServoConfig {
 mod tests {
     use super::*;
 
-    fn is_normal<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
+    fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
+    fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
 
     #[test]
     fn normal_types() {
-        is_normal::<MotorMixerCommands>();
-        is_normal::<MotorMixerCommandsDps>();
-        is_normal::<MotorMixerParameters>();
-        is_normal::<MixerConfig>();
-        is_normal::<MotorDeviceConfig>();
-        is_normal::<MotorConfig>();
-        is_normal::<ServoDeviceConfig>();
-        is_normal::<ServoConfig>();
+        is_full::<MotorMixerCommands>();
+        is_full::<MotorMixerCommandsDps>();
+        is_full::<MotorMixerParameters>();
+        is_full::<MixerConfig>();
+        is_full::<MotorDeviceConfig>();
+        is_full::<MotorConfig>();
+        is_full::<ServoDeviceConfig>();
+        is_full::<ServoConfig>();
     }
     #[test]
     fn new() {
