@@ -1,10 +1,13 @@
-use embassy_time::{Instant, Timer};
+//use embassy_time::{Instant, Timer};
 use filters::{BiquadFilterf32, FilterSignal, Pt1Filterf32};
 
 use vector_quaternion_matrix::Vector3df32;
 
 pub const RPM_FILTER_HARMONICS_COUNT: usize = 3;
 pub const MAX_MOTOR_COUNT: usize = 8;
+const FUNDAMENTAL: usize = 0;
+const SECOND_HARMONIC: usize = 1;
+const THIRD_HARMONIC: usize = 2;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RpmFilterBankConfig {
@@ -37,8 +40,147 @@ impl Default for RpmFilterBankConfig {
     }
 }
 
+// NOTE: I have considered the typestate pattern for the state machine and have elected not to use it.
+/// State enum to drive state machine.
+#[repr(u8)]
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
+enum State {
+    #[default]
+    Stopped,
+    Fundamental(usize),
+    SecondHarmonic(usize),
+    ThirdHarmonic(usize),
+}
+
+/*impl From<u8> for State {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => State::Stopped,
+            1 => State::Fundamental(0),
+            2 => Self::SecondHarmonic(0),
+            3 => Self::ThirdHarmonic(0),
+            _ => State::Stopped,
+        }
+    }
+}*/
+
+impl State {
+    /// External trigger to kick off the sequence
+    pub fn start(&mut self) {
+        if let State::Stopped = self {
+            *self = State::Fundamental(0);
+        }
+    }
+
+    /// Perform one step of the state machine
+    /// This is called from MotorMixer::rpm_filter_set_frequency_hz_iteration_step and so needs to be FAST.
+    pub fn update(
+        &mut self,
+        config: &RpmFilterBankConfig,
+        frequencies: RpmFilterFrequencies,
+        ctx: &mut RpmFilterBankContext,
+    ) {
+        // state machine sets notch filter for one harmonic of one motor on each iteration.
+
+        match core::mem::take(self) {
+            State::Stopped => {
+                // If we are stopped, we stay stopped until start() is called
+                // Explicitly setting *self = State::Stopped defends against a change in the default.
+                *self = State::Stopped;
+            }
+            State::Fundamental(motor_index) => {
+                // omega = frequency * _2PiLoopTimeSeconds
+                // max_frequency < 0.5 / looptime_seconds
+                // max_omega = (0.5 / looptime_seconds) * 2PiLooptimeSeconds = 0.5 * 2PI = PI;
+                // so omega is in range [0, PI]
+                (ctx.motor_states[motor_index].sin_omega, ctx.motor_states[motor_index].cos_omega) =
+                    ctx.motor_states[motor_index].omega.sin_cos();
+                ctx.filters[motor_index][FUNDAMENTAL].set_notch_frequency_weighted_from_sin_cos_assuming_q(
+                    ctx.motor_states[motor_index].sin_omega,
+                    ctx.motor_states[motor_index].cos_omega,
+                    ctx.weights[FUNDAMENTAL] * ctx.motor_states[motor_index].weight_multiplier,
+                );
+                *self = State::Fundamental(motor_index + 1);
+                if motor_index == config.motor_count as usize {
+                    // we have set the notch frequency for all motors, so move onto the next harmonic if there is one, otherwise we are finished
+                    if config.rpm_filter_harmonics >= 2 {
+                        if config.rpm_filter_weights[SECOND_HARMONIC] != 0 {
+                            *self = State::SecondHarmonic(0);
+                        } else if config.rpm_filter_harmonics >= 3 && config.rpm_filter_weights[THIRD_HARMONIC] != 0 {
+                            *self = State::ThirdHarmonic(0);
+                        } else {
+                            *self = State::Stopped;
+                        }
+                    } else {
+                        *self = State::Stopped;
+                    }
+                }
+            }
+            State::SecondHarmonic(motor_index) => {
+                let motor_state = ctx.motor_states[motor_index];
+                if motor_state.frequency_hz_unclamped > frequencies.half_of_max_hz {
+                    // ie 2.0 * frequency_hz_unclamped > _max_frequency_hz
+                    // no point filtering the second harmonic if it is above the Nyquist frequency
+                    ctx.weights[SECOND_HARMONIC] = 0.0;
+                } else {
+                    ctx.weights[SECOND_HARMONIC] = config.rpm_filter_weights[SECOND_HARMONIC] as f32 * 0.01;
+                    // sin(2θ) = 2 * sin(θ) * cos(θ)
+                    // cos(2θ) = 2 * cos^2(θ) - 1
+                    let sin_2_omega = motor_state.sin_omega * motor_state.cos_omega * 2.0;
+                    let cos_2_omega = motor_state.cos_omega * motor_state.cos_omega * 2.0 - 1.0;
+                    ctx.filters[motor_index][SECOND_HARMONIC].set_notch_frequency_weighted_from_sin_cos_assuming_q(
+                        sin_2_omega,
+                        cos_2_omega,
+                        ctx.weights[SECOND_HARMONIC] * ctx.motor_states[motor_index].weight_multiplier,
+                    );
+                }
+                *self = State::SecondHarmonic(motor_index + 1);
+                if motor_index == config.motor_count as usize {
+                    // we have set the notch frequency for all motors, so move onto the next harmonic if there is one, otherwise we are finished
+                    if config.rpm_filter_harmonics >= 3 && config.rpm_filter_weights[THIRD_HARMONIC] != 0 {
+                        *self = State::ThirdHarmonic(0);
+                    } else {
+                        *self = State::Stopped;
+                    }
+                }
+            }
+            State::ThirdHarmonic(motor_index) => {
+                let motor_state = ctx.motor_states[motor_index];
+                if motor_state.frequency_hz_unclamped > frequencies.third_of_max_hz {
+                    // ie 3.0 * frequency_hz_unclamped > _max_frequency_hz
+                    // no point filtering the third harmonic if it is above the Nyquist frequency
+                    ctx.weights[THIRD_HARMONIC] = 0.0;
+                } else {
+                    ctx.weights[THIRD_HARMONIC] = config.rpm_filter_weights[THIRD_HARMONIC] as f32 * 0.01;
+                    // sin(3θ) = 3 * sin(θ)   - 4 * sin^3(θ)
+                    //         = sin(θ) * ( 3 - 4 * sin^2(θ) )
+                    //         = sin(θ) * ( 3 - 4 * (1 - cos^2(θ)) )
+                    //         = sin(θ) * ( 4 * cos^2(θ) - 1)
+                    // cos(3θ) = 4 * cos^3(θ) - 3 * cos(θ)
+                    //         = cos(θ) * ( 4 * cos^2(θ) - 3 )
+                    let four_cos_squared_omega = 4.0 * motor_state.cos_omega * motor_state.cos_omega;
+                    let sin_3_omega = motor_state.sin_omega * (four_cos_squared_omega - 1.0);
+                    let cos_3_omega = motor_state.cos_omega * (four_cos_squared_omega - 3.0);
+                    ctx.filters[motor_index][THIRD_HARMONIC].set_notch_frequency_weighted_from_sin_cos_assuming_q(
+                        sin_3_omega,
+                        cos_3_omega,
+                        ctx.weights[THIRD_HARMONIC] * motor_state.weight_multiplier,
+                    );
+                }
+                *self = State::ThirdHarmonic(motor_index + 1);
+                if motor_index == config.motor_count as usize {
+                    // we have set the notch frequency for all motors, so we are finished
+                    *self = State::Stopped;
+                }
+            }
+        }
+    }
+}
+
+type BiquadFilters = [[BiquadFilterf32<Vector3df32>; RPM_FILTER_HARMONICS_COUNT]; MAX_MOTOR_COUNT];
+
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct RpmFiltersMotorState {
+pub struct RpmFilterMotorState {
     frequency_hz_unclamped: f32,
     weight_multiplier: f32,
     omega: f32,
@@ -46,101 +188,87 @@ pub struct RpmFiltersMotorState {
     cos_omega: f32,
 }
 
-// NOTE: I have considered the typestate patter an have elected not to use it.
-#[repr(u8)]
-#[derive(Clone, Copy, Default, Debug, PartialEq)]
-enum State {
-    #[default]
-    Stopped,
-    Fundamental,
-    SecondHarmonic,
-    ThirdHarmonic,
+type RpmFilterMotorStates = [RpmFilterMotorState; MAX_MOTOR_COUNT];
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RpmFilterFrequencies {
+    min_hz: f32,
+    max_hz: f32,
+    half_of_max_hz: f32,
+    third_of_max_hz: f32,
 }
 
-impl From<u8> for State {
-    fn from(value: u8) -> Self {
-        match value {
-            0 => State::Stopped,
-            1 => State::Fundamental,
-            2 => Self::SecondHarmonic,
-            3 => Self::ThirdHarmonic,
-            _ => State::Stopped,
-        }
+impl Default for RpmFilterFrequencies {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-struct StateMachineState {
-    state: State,
-    motor_index: usize,
-    motor_states: [RpmFiltersMotorState; MAX_MOTOR_COUNT],
-}
-
-impl StateMachineState {
-    #[allow(dead_code)]
+impl RpmFilterFrequencies {
     pub fn new() -> Self {
-        Self::default()
+        Self { min_hz: 100.0, max_hz: 0.0, half_of_max_hz: 0.0, third_of_max_hz: 0.0 }
     }
+}
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct RpmFilterBankContext {
+    filters: BiquadFilters,
+    motor_states: RpmFilterMotorStates,
+    weights: [f32; RPM_FILTER_HARMONICS_COUNT],
 }
 
 /// Bank of RpmFilters, one for each motor.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RpmFilterBank {
+    motor_rpm_filters: [Pt1Filterf32<f32>; MAX_MOTOR_COUNT],
     config: RpmFilterBankConfig,
+    frequencies: RpmFilterFrequencies,
+    state: State,
+    ctx: RpmFilterBankContext,
     looptime_seconds: f32,
-    state: StateMachineState,
-    weights: [f32; RPM_FILTER_HARMONICS_COUNT],
-    min_frequency_hz: f32,
-    max_frequency_hz: f32,
-    half_of_max_frequency_hz: f32,
-    third_of_max_frequency_hz: f32,
     fade_range_hz: f32,
     q: f32,
-    filters: [[BiquadFilterf32<Vector3df32>; RPM_FILTER_HARMONICS_COUNT]; MAX_MOTOR_COUNT],
-    motor_rpm_filters: [Pt1Filterf32<f32>; MAX_MOTOR_COUNT],
 }
 
-const FUNDAMENTAL: usize = 0;
-const SECOND_HARMONIC: usize = 1;
-const THIRD_HARMONIC: usize = 2;
+impl Default for RpmFilterBank {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl RpmFilterBank {
     pub fn new() -> Self {
         Self {
+            motor_rpm_filters: <[Pt1Filterf32<f32>; MAX_MOTOR_COUNT]>::default(),
             config: RpmFilterBankConfig::default(),
+            frequencies: RpmFilterFrequencies::default(),
+            state: State::default(),
+            ctx: RpmFilterBankContext::default(),
             looptime_seconds: 0.001,
-            state: StateMachineState::default(),
-            weights: <[f32; RPM_FILTER_HARMONICS_COUNT]>::default(),
-            min_frequency_hz: 100.0,
-            max_frequency_hz: 0.0,
-            half_of_max_frequency_hz: 0.0,
-            third_of_max_frequency_hz: 0.0,
             fade_range_hz: 50.0,
             q: 0.0,
-            filters: <[[BiquadFilterf32<Vector3df32>; RPM_FILTER_HARMONICS_COUNT]; MAX_MOTOR_COUNT]>::default(),
-            motor_rpm_filters: <[Pt1Filterf32<f32>; MAX_MOTOR_COUNT]>::default(),
         }
     }
+
     pub fn set_config(&mut self, config: RpmFilterBankConfig) {
         self.config = config;
 
         self.q = config.rpm_filter_q as f32 * 0.01;
 
-        self.state.state = State::Stopped;
+        self.state = State::Stopped;
         // just under  Nyquist frequency (ie just under half sampling rate)
         // for 8kHz loop this is 3840Hz
-        self.max_frequency_hz = 480000.0 / self.looptime_seconds;
+        self.frequencies.max_hz = 480000.0 / self.looptime_seconds;
 
         // pre-calculate frequencies for speed in iteration steps
-        self.half_of_max_frequency_hz = self.max_frequency_hz / 2.0;
-        self.third_of_max_frequency_hz = self.max_frequency_hz / 3.0;
-        self.min_frequency_hz = config.rpm_filter_min_hz as f32;
+        self.frequencies.half_of_max_hz = self.frequencies.max_hz / 2.0;
+        self.frequencies.third_of_max_hz = self.frequencies.max_hz / 3.0;
+        self.frequencies.min_hz = config.rpm_filter_min_hz as f32;
         self.fade_range_hz = config.rpm_filter_fade_range_hz as f32;
 
         for harmonic in 0..config.rpm_filter_harmonics as usize {
             for motor in 0..config.motor_count as usize {
-                self.filters[motor][harmonic].init_notch(
-                    self.min_frequency_hz * (harmonic + 1) as f32,
+                self.ctx.filters[motor][harmonic].init_notch(
+                    self.frequencies.min_hz * (harmonic + 1) as f32,
                     self.looptime_seconds,
                     self.q,
                 );
@@ -160,153 +288,42 @@ impl RpmFilterBank {
 
     /// Start the filter state machine
     /// This is called from MotorMixer::output_to_motors and so needs to be FAST.
-    pub fn set_frequency_hz_iteration_start(&mut self, motor_index: usize, frequency_hz: f32) {
+    pub fn start(&mut self, motor_index: usize, frequency_hz: f32) {
         if self.config.rpm_filter_lpf_hz == 0 {
             return;
         }
-        if self.state.state == State::Stopped {
-            self.state.state = State::Fundamental;
-            self.state.motor_index = 0;
-        }
-        let mut motor_state = self.state.motor_states[motor_index];
+        let mut motor_state = self.ctx.motor_states[motor_index];
 
         motor_state.frequency_hz_unclamped = self.motor_rpm_filters[motor_index].apply(frequency_hz);
-        let frequency_hz = motor_state.frequency_hz_unclamped.clamp(self.min_frequency_hz, self.max_frequency_hz);
+        let frequency_hz = motor_state.frequency_hz_unclamped.clamp(self.frequencies.min_hz, self.frequencies.max_hz);
 
-        let margin_frequency_hz = frequency_hz - self.min_frequency_hz;
+        let margin_frequency_hz = frequency_hz - self.frequencies.min_hz;
         motor_state.weight_multiplier =
             if margin_frequency_hz < self.fade_range_hz { margin_frequency_hz / self.fade_range_hz } else { 1.0 };
 
-        let rpm_filter = self.filters[motor_index][FUNDAMENTAL];
+        let rpm_filter = self.ctx.filters[motor_index][FUNDAMENTAL];
         motor_state.omega = rpm_filter.calculate_omega(frequency_hz);
 
-        self.state.motor_states[motor_index] = motor_state;
+        self.ctx.motor_states[motor_index] = motor_state;
+
+        self.state.start();
     }
 
-    /// Perform one step of the state machine
-    /// This is called from MotorMixer::rpm_filter_set_frequency_hz_iteration_step and so needs to be FAST.
-    pub fn set_frequency_hz_iteration_step(&mut self) {
-        // state machine sets notch filter for one harmonic of one motor on each iteration.
-
-        match self.state.state {
-            State::Stopped => {}
-            State::Fundamental => {
-                let mut rpm_filter = self.filters[self.state.motor_index][FUNDAMENTAL];
-                // omega = frequency * _2PiLoopTimeSeconds
-                // max_frequency < 0.5 / looptime_seconds
-                // max_omega = (0.5 / looptime_seconds) * 2PiLooptimeSeconds = 0.5 * 2PI = PI;
-                // so omega is in range [0, PI]
-                let mut motor_state = self.state.motor_states[self.state.motor_index];
-                (motor_state.sin_omega, motor_state.cos_omega) = motor_state.omega.sin_cos();
-                rpm_filter.set_notch_frequency_weighted_from_sin_cos_assuming_q(
-                    motor_state.sin_omega,
-                    motor_state.cos_omega * 2.0,
-                    self.weights[FUNDAMENTAL] * motor_state.weight_multiplier,
-                );
-                self.state.motor_index += 1;
-                if self.state.motor_index == self.config.motor_count as usize {
-                    // we have set the notch frequency for all motors, so move onto the next harmonic if there is one, otherwise we are finished
-                    self.state.motor_index = 0;
-                    if self.config.rpm_filter_harmonics >= 2 {
-                        if self.config.rpm_filter_weights[SECOND_HARMONIC] != 0 {
-                            self.state.state = State::SecondHarmonic;
-                        } else if self.config.rpm_filter_harmonics >= 3
-                            && self.config.rpm_filter_weights[THIRD_HARMONIC] != 0
-                        {
-                            self.state.state = State::ThirdHarmonic;
-                        } else {
-                            self.state.state = State::Stopped;
-                        }
-                    } else {
-                        self.state.state = State::Stopped;
-                    }
-                }
-            }
-            State::SecondHarmonic => {
-                let motor_state = self.state.motor_states[self.state.motor_index];
-                if motor_state.frequency_hz_unclamped > self.half_of_max_frequency_hz {
-                    // ie 2.0 * frequency_hz_unclamped > _max_frequency_hz
-                    // no point filtering the second harmonic if it is above the Nyquist frequency
-                    self.weights[SECOND_HARMONIC] = 0.0;
-                } else {
-                    self.weights[SECOND_HARMONIC] = self.config.rpm_filter_weights[SECOND_HARMONIC] as f32 * 0.01;
-                    let mut rpm_filter = self.filters[self.state.motor_index][SECOND_HARMONIC];
-                    // sin(2θ) = 2 * sin(θ) * cos(θ)
-                    // cos(2θ) = 2 * cos^2(θ) - 1
-                    let sin_2_omega = motor_state.sin_omega * motor_state.cos_omega * 2.0;
-                    let two_cos_2_omega = motor_state.cos_omega * motor_state.cos_omega * 4.0 - 2.0;
-                    rpm_filter.set_notch_frequency_weighted_from_sin_cos_assuming_q(
-                        sin_2_omega,
-                        two_cos_2_omega,
-                        self.weights[SECOND_HARMONIC] * motor_state.weight_multiplier,
-                    );
-                }
-                self.state.motor_index += 1;
-                if self.state.motor_index == self.config.motor_count as usize {
-                    // we have set the notch frequency for all motors, so move onto the next harmonic if there is one, otherwise we are finished
-                    self.state.motor_index = 0;
-                    if self.config.rpm_filter_harmonics >= 3 && self.config.rpm_filter_weights[THIRD_HARMONIC] != 0 {
-                        self.state.state = State::ThirdHarmonic;
-                    } else {
-                        self.state.state = State::Stopped;
-                    }
-                }
-            }
-            State::ThirdHarmonic => {
-                let motor_state = self.state.motor_states[self.state.motor_index];
-                if motor_state.frequency_hz_unclamped > self.third_of_max_frequency_hz {
-                    // ie 3.0 * frequency_hz_unclamped > _max_frequency_hz
-                    // no point filtering the third harmonic if it is above the Nyquist frequency
-                    self.weights[THIRD_HARMONIC] = 0.0;
-                } else {
-                    self.weights[THIRD_HARMONIC] = self.config.rpm_filter_weights[THIRD_HARMONIC] as f32 * 0.01;
-                    let mut rpm_filter = self.filters[self.state.motor_index][THIRD_HARMONIC];
-                    // sin(3θ) = 3 * sin(θ)   - 4 * sin^3(θ)
-                    //         = sin(θ) * ( 3 - 4 * sin^2(θ) )
-                    //         = sin(θ) * ( 3 - 4 * (1 - cos^2(θ)) )
-                    //         = sin(θ) * ( 4 * cos^2(θ) - 1)
-                    // cos(3θ) = 4 * cos^3(θ) - 3 * cos(θ)
-                    //         = cos(θ) * ( 4 * cos^2(θ) - 3 )
-                    let four_cos_squared_omega = 4.0 * motor_state.cos_omega * motor_state.cos_omega;
-                    let sin_3_omega = motor_state.sin_omega * (four_cos_squared_omega - 1.0);
-                    let two_cos_3_omega = 2.0 * motor_state.cos_omega * (four_cos_squared_omega - 3.0);
-                    rpm_filter.set_notch_frequency_weighted_from_sin_cos_assuming_q(
-                        sin_3_omega,
-                        two_cos_3_omega,
-                        self.weights[THIRD_HARMONIC] * motor_state.weight_multiplier,
-                    );
-                }
-                self.state.motor_index += 1;
-                if self.state.motor_index == self.config.motor_count as usize {
-                    // we have set the notch frequency for all motors, so we are finished
-                    self.state.motor_index = 0;
-                    self.state.state = State::Stopped;
-                }
-            }
-        }
+    pub fn update(&mut self) {
+        //self.state = self.state.update(self);
+        self.state.update(&self.config, self.frequencies, &mut self.ctx);
     }
 
-    pub async fn set_frequency_hz_iteration_step_async(&mut self) {
-        self.set_frequency_hz_iteration_step();
-        Timer::at(Instant::now()).await;
-    }
+    pub fn filter(ctx: &mut RpmFilterBankContext, input: Vector3df32, motor_index: usize) -> Vector3df32 {
+        let mut ret = ctx.filters[motor_index][FUNDAMENTAL].filter_weighted(input);
 
-    pub fn filter(&mut self, input: Vector3df32, motor_index: usize) -> Vector3df32 {
-        let mut ret = self.filters[motor_index][FUNDAMENTAL].filter_weighted(input);
-
-        if self.weights[SECOND_HARMONIC] != 0.0 {
-            ret = self.filters[motor_index][SECOND_HARMONIC].filter_weighted(input);
+        if ctx.weights[SECOND_HARMONIC] != 0.0 {
+            ret = ctx.filters[motor_index][SECOND_HARMONIC].filter_weighted(input);
         };
-        if self.weights[THIRD_HARMONIC] != 0.0 {
-            ret = self.filters[motor_index][THIRD_HARMONIC].filter_weighted(input);
+        if ctx.weights[THIRD_HARMONIC] != 0.0 {
+            ret = ctx.filters[motor_index][THIRD_HARMONIC].filter_weighted(input);
         };
         ret
-    }
-}
-
-impl Default for RpmFilterBank {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -344,8 +361,8 @@ mod tests {
     #[test]
     fn normal_types() {
         is_full::<RpmFilterBankConfig>();
-        is_full::<RpmFiltersMotorState>();
-        is_full::<StateMachineState>();
+        is_full::<RpmFilterMotorState>();
+        is_full::<State>();
         is_full::<RpmFilterBank>();
     }
     #[test]
