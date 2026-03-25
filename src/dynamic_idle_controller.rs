@@ -22,7 +22,6 @@ impl DynamicIdleControllerConfig {
     }
 }
 
-// it is idiomatic to implement default in terms of new
 impl Default for DynamicIdleControllerConfig {
     fn default() -> Self {
         Self::new()
@@ -40,10 +39,6 @@ impl Default for DynamicIdleControllerConfig {
 ///
 /// Instead we have a PID controller that increases output to the motors as the slowest motor nears the minimum allowed RPM.
 ///
-pub trait DynamicIdleControl {
-    fn calculate_speed_increase(&mut self, slowest_motor_hz: f32, delta_t: f32) -> f32;
-}
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct DynamicIdleController {
     task_interval_microseconds: u32,
@@ -53,6 +48,12 @@ pub struct DynamicIdleController {
     pid: PidController<f32>, // PID to dynamic idle, ie to ensure slowest motor does not go below min RPS
     dterm_filter: Pt1Filterf32<f32>,
     config: DynamicIdleControllerConfig,
+}
+
+impl Default for DynamicIdleController {
+    fn default() -> Self {
+        Self::new(1000)
+    }
 }
 
 impl DynamicIdleController {
@@ -67,9 +68,11 @@ impl DynamicIdleController {
             config: DynamicIdleControllerConfig::default(),
         }
     }
+
     pub fn config(&self) -> DynamicIdleControllerConfig {
         self.config
     }
+
     pub fn set_config(&mut self, config: DynamicIdleControllerConfig) {
         self.config = config;
 
@@ -95,20 +98,13 @@ impl DynamicIdleController {
     pub fn minimum_allowed_motor_hz(&self) -> f32 {
         self.minimum_allowed_motor_hz
     }
+
     pub fn set_minimum_allowed_motor_hz(&mut self, minimum_allowed_motor_hz: f32) {
         self.minimum_allowed_motor_hz = minimum_allowed_motor_hz;
         self.pid.set_setpoint(self.minimum_allowed_motor_hz);
     }
-}
 
-impl Default for DynamicIdleController {
-    fn default() -> Self {
-        Self::new(1000)
-    }
-}
-
-impl DynamicIdleControl for DynamicIdleController {
-    fn calculate_speed_increase(&mut self, slowest_motor_hz: f32, delta_t: f32) -> f32 {
+    pub fn calculate_speed_increase(&mut self, slowest_motor_hz: f32, delta_t: f32) -> f32 {
         if self.minimum_allowed_motor_hz == 0.0 {
             // if motors are allowed to stop, then no speed increase is needed
             return 0.0;
