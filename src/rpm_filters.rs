@@ -1,5 +1,6 @@
+//use defmt::debug;
 //use embassy_time::{Instant, Timer};
-use filters::{BiquadFilterf32, FilterSignal, Pt1Filterf32};
+use filters::{BiquadFilterf32, Pt1Filterf32};
 
 use vector_quaternion_matrix::Vector3df32;
 
@@ -64,8 +65,14 @@ enum State {
     }
 }*/
 
+/// State machine to set notch frequencies for the rpm filter bank.
+///
+/// On each iteration of the state machine, one harmonic is set for one motor.
+///
+/// For a tri-bladed quadcopter (which will typically filter the fundamental frequency and first harmonic)
+/// 8 iterations of the state machine are required to set all the notch filters.
 impl State {
-    /// External trigger to kick off the sequence
+    /// External trigger to start the state machine
     pub fn start(&mut self) {
         if let State::Stopped = self {
             *self = State::Fundamental(0);
@@ -93,14 +100,29 @@ impl State {
                 // max_frequency < 0.5 / looptime_seconds
                 // max_omega = (0.5 / looptime_seconds) * 2PiLooptimeSeconds = 0.5 * 2PI = PI;
                 // so omega is in range [0, PI]
-                (ctx.motor_states[motor_index].sin_omega, ctx.motor_states[motor_index].cos_omega) =
-                    ctx.motor_states[motor_index].omega.sin_cos();
-                ctx.filters[motor_index][FUNDAMENTAL].set_notch_frequency_weighted_from_sin_cos_assuming_q(
+
+                //let mut motor_state = self.ctx.motor_states[motor_index];
+
+                let frequency_hz_unclamped = 0.0f32; //self.motor_rpm_filters[motor_index].apply(frequency_hz);
+                let frequency_hz = frequency_hz_unclamped.clamp(frequencies.min_hz, frequencies.max_hz);
+
+                let margin_frequency_hz = frequency_hz - frequencies.min_hz;
+                let weight_multiplier =
+                    if margin_frequency_hz < ctx.fade_range_hz { margin_frequency_hz / ctx.fade_range_hz } else { 1.0 };
+
+                let omega = ctx.notch_filters[motor_index][FUNDAMENTAL].calculate_omega(frequency_hz);
+
+                //self.ctx.motor_states[motor_index] = motor_state;
+
+                // calculate sin(omega) and cos(omega) and cache their values to speed up calculations for the second and third harmonics
+                (ctx.motor_states[motor_index].sin_omega, ctx.motor_states[motor_index].cos_omega) = omega.sin_cos();
+
+                ctx.notch_filters[motor_index][FUNDAMENTAL].set_notch_frequency_weighted_from_sin_cos_assuming_q(
                     ctx.motor_states[motor_index].sin_omega,
                     ctx.motor_states[motor_index].cos_omega,
-                    ctx.weights[FUNDAMENTAL] * ctx.motor_states[motor_index].weight_multiplier,
+                    ctx.weights[FUNDAMENTAL] * weight_multiplier,
                 );
-                *self = State::Fundamental(motor_index + 1);
+                // move onto the next state
                 if motor_index == config.motor_count as usize {
                     // we have set the notch frequency for all motors, so move onto the next harmonic if there is one, otherwise we are finished
                     if config.rpm_filter_harmonics >= 2 {
@@ -114,6 +136,8 @@ impl State {
                     } else {
                         *self = State::Stopped;
                     }
+                } else {
+                    *self = State::Fundamental(motor_index + 1);
                 }
             }
             State::SecondHarmonic(motor_index) => {
@@ -128,11 +152,12 @@ impl State {
                     // cos(2θ) = 2 * cos^2(θ) - 1
                     let sin_2_omega = motor_state.sin_omega * motor_state.cos_omega * 2.0;
                     let cos_2_omega = motor_state.cos_omega * motor_state.cos_omega * 2.0 - 1.0;
-                    ctx.filters[motor_index][SECOND_HARMONIC].set_notch_frequency_weighted_from_sin_cos_assuming_q(
-                        sin_2_omega,
-                        cos_2_omega,
-                        ctx.weights[SECOND_HARMONIC] * ctx.motor_states[motor_index].weight_multiplier,
-                    );
+                    ctx.notch_filters[motor_index][SECOND_HARMONIC]
+                        .set_notch_frequency_weighted_from_sin_cos_assuming_q(
+                            sin_2_omega,
+                            cos_2_omega,
+                            ctx.weights[SECOND_HARMONIC] * ctx.motor_states[motor_index].weight_multiplier,
+                        );
                 }
                 *self = State::SecondHarmonic(motor_index + 1);
                 if motor_index == config.motor_count as usize {
@@ -161,11 +186,12 @@ impl State {
                     let four_cos_squared_omega = 4.0 * motor_state.cos_omega * motor_state.cos_omega;
                     let sin_3_omega = motor_state.sin_omega * (four_cos_squared_omega - 1.0);
                     let cos_3_omega = motor_state.cos_omega * (four_cos_squared_omega - 3.0);
-                    ctx.filters[motor_index][THIRD_HARMONIC].set_notch_frequency_weighted_from_sin_cos_assuming_q(
-                        sin_3_omega,
-                        cos_3_omega,
-                        ctx.weights[THIRD_HARMONIC] * motor_state.weight_multiplier,
-                    );
+                    ctx.notch_filters[motor_index][THIRD_HARMONIC]
+                        .set_notch_frequency_weighted_from_sin_cos_assuming_q(
+                            sin_3_omega,
+                            cos_3_omega,
+                            ctx.weights[THIRD_HARMONIC] * motor_state.weight_multiplier,
+                        );
                 }
                 *self = State::ThirdHarmonic(motor_index + 1);
                 if motor_index == config.motor_count as usize {
@@ -176,8 +202,6 @@ impl State {
         }
     }
 }
-
-type BiquadFilters = [[BiquadFilterf32<Vector3df32>; RPM_FILTER_HARMONICS_COUNT]; MAX_MOTOR_COUNT];
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct RpmFilterMotorState {
@@ -204,47 +228,64 @@ impl Default for RpmFilterFrequencies {
     }
 }
 
+type NotchFilters = [[BiquadFilterf32<Vector3df32>; RPM_FILTER_HARMONICS_COUNT]; MAX_MOTOR_COUNT];
+
 impl RpmFilterFrequencies {
     pub fn new() -> Self {
         Self { min_hz: 100.0, max_hz: 0.0, half_of_max_hz: 0.0, third_of_max_hz: 0.0 }
     }
 }
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RpmFilterBankContext {
-    filters: BiquadFilters,
+    motor_rpm_filters: [Pt1Filterf32<f32>; MAX_MOTOR_COUNT],
+    notch_filters: NotchFilters,
     motor_states: RpmFilterMotorStates,
     weights: [f32; RPM_FILTER_HARMONICS_COUNT],
+    fade_range_hz: f32,
 }
 
+impl Default for RpmFilterBankContext {
+    fn default() -> Self {
+        Self::new(50.0)
+    }
+}
+impl RpmFilterBankContext {
+    pub fn new(fade_range_hz: f32) -> Self {
+        Self {
+            motor_rpm_filters: <[Pt1Filterf32<f32>; MAX_MOTOR_COUNT]>::default(),
+            notch_filters: NotchFilters::default(),
+            motor_states: RpmFilterMotorStates::default(),
+            weights: <[f32; RPM_FILTER_HARMONICS_COUNT]>::default(),
+            fade_range_hz,
+        }
+    }
+}
 /// Bank of RpmFilters, one for each motor.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RpmFilterBank {
-    motor_rpm_filters: [Pt1Filterf32<f32>; MAX_MOTOR_COUNT],
     config: RpmFilterBankConfig,
     frequencies: RpmFilterFrequencies,
     state: State,
     ctx: RpmFilterBankContext,
+    // all the notch filters have the same q and looptime
     looptime_seconds: f32,
-    fade_range_hz: f32,
     q: f32,
 }
 
 impl Default for RpmFilterBank {
     fn default() -> Self {
-        Self::new()
+        Self::new(0.001)
     }
 }
 
 impl RpmFilterBank {
-    pub fn new() -> Self {
+    pub fn new(looptime_seconds: f32) -> Self {
         Self {
-            motor_rpm_filters: <[Pt1Filterf32<f32>; MAX_MOTOR_COUNT]>::default(),
             config: RpmFilterBankConfig::default(),
             frequencies: RpmFilterFrequencies::default(),
             state: State::default(),
             ctx: RpmFilterBankContext::default(),
-            looptime_seconds: 0.001,
-            fade_range_hz: 50.0,
+            looptime_seconds,
             q: 0.0,
         }
     }
@@ -263,11 +304,11 @@ impl RpmFilterBank {
         self.frequencies.half_of_max_hz = self.frequencies.max_hz / 2.0;
         self.frequencies.third_of_max_hz = self.frequencies.max_hz / 3.0;
         self.frequencies.min_hz = config.rpm_filter_min_hz as f32;
-        self.fade_range_hz = config.rpm_filter_fade_range_hz as f32;
+        self.ctx.fade_range_hz = config.rpm_filter_fade_range_hz as f32;
 
         for harmonic in 0..config.rpm_filter_harmonics as usize {
             for motor in 0..config.motor_count as usize {
-                self.ctx.filters[motor][harmonic].init_notch(
+                self.ctx.notch_filters[motor][harmonic].init_notch(
                     self.frequencies.min_hz * (harmonic + 1) as f32,
                     self.looptime_seconds,
                     self.q,
@@ -276,11 +317,11 @@ impl RpmFilterBank {
         }
 
         if config.rpm_filter_lpf_hz == 0 {
-            for mut rpm_filter in self.motor_rpm_filters {
+            for mut rpm_filter in self.ctx.motor_rpm_filters {
                 rpm_filter.set_to_passthrough();
             }
         } else {
-            for mut rpm_filter in self.motor_rpm_filters {
+            for mut rpm_filter in self.ctx.motor_rpm_filters {
                 rpm_filter.set_cutoff_frequency_and_reset(config.rpm_filter_lpf_hz as f32, self.looptime_seconds);
             }
         }
@@ -288,24 +329,10 @@ impl RpmFilterBank {
 
     /// Start the filter state machine
     /// This is called from MotorMixer::output_to_motors and so needs to be FAST.
-    pub fn start(&mut self, motor_index: usize, frequency_hz: f32) {
+    pub fn start(&mut self) {
         if self.config.rpm_filter_lpf_hz == 0 {
             return;
         }
-        let mut motor_state = self.ctx.motor_states[motor_index];
-
-        motor_state.frequency_hz_unclamped = self.motor_rpm_filters[motor_index].apply(frequency_hz);
-        let frequency_hz = motor_state.frequency_hz_unclamped.clamp(self.frequencies.min_hz, self.frequencies.max_hz);
-
-        let margin_frequency_hz = frequency_hz - self.frequencies.min_hz;
-        motor_state.weight_multiplier =
-            if margin_frequency_hz < self.fade_range_hz { margin_frequency_hz / self.fade_range_hz } else { 1.0 };
-
-        let rpm_filter = self.ctx.filters[motor_index][FUNDAMENTAL];
-        motor_state.omega = rpm_filter.calculate_omega(frequency_hz);
-
-        self.ctx.motor_states[motor_index] = motor_state;
-
         self.state.start();
     }
 
@@ -314,14 +341,15 @@ impl RpmFilterBank {
         self.state.update(&self.config, self.frequencies, &mut self.ctx);
     }
 
+    /// Apply the notch filters for all selected harmonics for the given motor
     pub fn filter(ctx: &mut RpmFilterBankContext, input: Vector3df32, motor_index: usize) -> Vector3df32 {
-        let mut ret = ctx.filters[motor_index][FUNDAMENTAL].filter_weighted(input);
+        let mut ret = ctx.notch_filters[motor_index][FUNDAMENTAL].filter_weighted(input);
 
         if ctx.weights[SECOND_HARMONIC] != 0.0 {
-            ret = ctx.filters[motor_index][SECOND_HARMONIC].filter_weighted(input);
+            ret = ctx.notch_filters[motor_index][SECOND_HARMONIC].filter_weighted(input);
         };
         if ctx.weights[THIRD_HARMONIC] != 0.0 {
-            ret = ctx.filters[motor_index][THIRD_HARMONIC].filter_weighted(input);
+            ret = ctx.notch_filters[motor_index][THIRD_HARMONIC].filter_weighted(input);
         };
         ret
     }
