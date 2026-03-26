@@ -18,7 +18,7 @@ impl RpmHz for f32 {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct DynamicIdleControllerConfig {
     pub dyn_idle_min_rpm_d100: u8, // multiply this by 100 to get the actual min RPM
-    pub dyn_idle_p_gain_x100: u8, // divide this by 100 to get the actual kp
+    pub dyn_idle_p_gain_x100: u8,  // divide this by 100 to get the actual kp
     pub dyn_idle_i_gain_x100: u8,
     pub dyn_idle_d_gain_x100: u8,
     pub dyn_idle_max_increase: u8,
@@ -175,7 +175,7 @@ mod tests {
         const TASK_INTERVAL_MICROSECONDS: u32 = 1000;
         let dynamic_idle_controller_config = DynamicIdleControllerConfig {
             dyn_idle_min_rpm_d100: 12, // 12*100 = 1200 rpm
-            dyn_idle_p_gain_x100: 50, // 50/100 = 0.5
+            dyn_idle_p_gain_x100: 50,  // 50/100 = 0.5
             dyn_idle_i_gain_x100: 0,
             dyn_idle_d_gain_x100: 0,
             dyn_idle_max_increase: 150,

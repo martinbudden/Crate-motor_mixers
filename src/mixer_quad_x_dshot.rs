@@ -1,42 +1,49 @@
+use crate::mixer::MotorOutputs;
 use crate::{
     MotorFrequencies, MotorMixer, MotorMixerCommands, MotorMixerCommandsDps, MotorMixerCommon, MotorMixerDriver,
-    MotorMixerParameters, mix_quad_x, mixer::MotorOutputs,
+    MotorMixerParameters, RpmFilterBank, RpmFilterBankConfig, mix_quad_x,
 };
 
-impl MotorMixerDriver for MotorMixerQuadXPwm {
+impl MotorMixerDriver for MotorMixerQuadXDshot {
     fn write_to_motors(&mut self, _motor_outputs: MotorOutputs) {
-        // TODO: implement write_to_motor for MotorMixerQuadXPwm
+        // TODO: implement write_to_motors for MotorMixerQuadXShot
     }
-    // Null implementation for PWM, since we cannot obtain the motor frequencies.
     fn read_motor_frequencies_hz(&mut self) -> MotorFrequencies {
+        // TODO: implement read_motor_frequencies_hz for MotorMixerQuadDshot
         MotorFrequencies::default()
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct MotorMixerQuadXPwm {
+pub struct MotorMixerQuadXDshot {
     common: MotorMixerCommon,
-    max_duty: u32,
+    config: RpmFilterBankConfig,
+    rpm_filters: RpmFilterBank,
+    motor_frequencies_hz: MotorFrequencies,
+    rpm_filter_iteration_count: usize,
 }
 
-impl Default for MotorMixerQuadXPwm {
+impl Default for MotorMixerQuadXDshot {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl MotorMixerQuadXPwm {
+impl MotorMixerQuadXDshot {
     const MOTOR_COUNT: usize = 4;
 
     pub fn new() -> Self {
         Self {
-            common: MotorMixerCommon::default(), // more idiomatic than calling new
-            max_duty: 255,
+            common: MotorMixerCommon::default(),
+            config: RpmFilterBankConfig::default(),
+            rpm_filters: RpmFilterBank::default(),
+            motor_frequencies_hz: MotorFrequencies::default(),
+            rpm_filter_iteration_count: 0,
         }
     }
 }
 
-impl MotorMixer for MotorMixerQuadXPwm {
+impl MotorMixer for MotorMixerQuadXDshot {
     fn common(&self) -> &MotorMixerCommon {
         &self.common
     }
@@ -54,6 +61,12 @@ impl MotorMixer for MotorMixerQuadXPwm {
             self.write_to_motors(self.common.outputs);
             return;
         }
+
+        // TODO: read the motor frequencies from the Dshot driver.
+        // We retain the values, so they can be displayed on an OSD or recorded in blackbox, if required.
+        self.motor_frequencies_hz = self.read_motor_frequencies_hz();
+        self.rpm_filters.start(self.motor_frequencies_hz);
+
         if self.output_this_cycle() {
             const MIXER_OUTPUT_SCALE_FACTOR: f32 = 1000.0;
             let mut mix_params = MotorMixerParameters::default();
@@ -69,6 +82,17 @@ impl MotorMixer for MotorMixerQuadXPwm {
 
             self.write_to_motors(self.common.outputs);
         }
+
+        // We need to complete the rpm_filter iterations before the next time rpm_filter.start() is called.
+        // So, for example, if there are 2 harmonics and 4 motors that gives 8 iterations in total.
+        // So if output_denominator is 2, then we need to do 4 iterations.
+        // If output denominator is 3, then we need to do 3 iterations.
+        // TODO: move the calculation of iteration_count into set_config.
+        let iteration_count =
+            (self.config.rpm_filter_harmonics as usize * Self::MOTOR_COUNT).div_ceil(self.output_denominator());
+        for _ in 0..iteration_count {
+            self.rpm_filters.update();
+        }
     }
 }
 
@@ -81,11 +105,10 @@ mod tests {
 
     #[test]
     fn normal_types() {
-        is_full::<MotorMixerQuadXPwm>();
+        is_full::<MotorMixerQuadXDshot>();
     }
     #[test]
     fn new() {
-        let quadx = MotorMixerQuadXPwm::new();
-        assert_eq!(255, quadx.max_duty);
+        let _quadx = MotorMixerQuadXDshot::new();
     }
 }

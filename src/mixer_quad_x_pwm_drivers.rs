@@ -29,24 +29,14 @@ impl MotorDriver {
         }
     }
 
-    pub fn write_motor(&mut self, motor_index: u8, motor_output: f32) {
-        let pulse_ms = 1.0 + motor_output;
-        let duty = ((pulse_ms / 20.0) * self.top as f32) as u16;
+    pub fn write_motors(&mut self, motor_outputs: MotorOutputs) {
+        self.config0.compare_a = (((1.0 + motor_output[0]) / 20.0) * self.top as f32) as u16;
+        self.config0.compare_b = (((1.0 + motor_output[1]) / 20.0) * self.top as f32) as u16;
+        self.config1.compare_a = (((1.0 + motor_output[2]) / 20.0) * self.top as f32) as u16;
+        self.config1.compare_b = (((1.0 + motor_output[3]) / 20.0) * self.top as f32) as u16;
 
-        match motor_index {
-            0 => self.config0.compare_a = duty,
-            1 => self.config0.compare_b = duty,
-            2 => self.config1.compare_a = duty,
-            3 => self.config1.compare_b = duty,
-            _ => return,
-        }
-
-        let (pwm, config) = match motor_index {
-            0 | 1 => (&mut self.pwm0, &self.config0),
-            2 | 3 => (&mut self.pwm1, &self.config1),
-            _ => return,
-        };
-        pwm.set_config(&config);
+        self.pwm0.set_config(&self.config0);
+        self.pwm1.set_config(&self.config1);
     }
 }
 
@@ -66,10 +56,10 @@ pub struct MotorDriver<T>
 where
     T: GeneralInstance4Channel,
 {
+    ch0: SimplePwmChannel<'static, T>,
     ch1: SimplePwmChannel<'static, T>,
     ch2: SimplePwmChannel<'static, T>,
     ch3: SimplePwmChannel<'static, T>,
-    ch4: SimplePwmChannel<'static, T>,
 }
 
 impl<T> MotorDriver<T>
@@ -79,26 +69,21 @@ where
     pub fn new(pwm: SimplePwm<'static, T>) -> Self {
         let channels = pwm.split();
         Self {
-            ch1: channels.ch1,
-            ch2: channels.ch2,
-            ch3: channels.ch3,
-            ch4: channels.ch4,
+            ch0: channels.ch1,
+            ch1: channels.ch2,
+            ch2: channels.ch3,
+            ch3: channels.ch4,
         }
     }
-    pub fn write_motor(&mut self, motor_index: u8, motor_output: f32) {
-        let pulse_ms = 1.0 + motor_output;
-        let duty = (pulse_ms * 1000.0 / 20.0) as u32;
-
-        let channel = match motor_index {
-            0 => &mut self.ch1,
-            1 => &mut self.ch2,
-            2 => &mut self.ch3,
-            3 => &mut self.ch4,
-            _ => return,
-        };
-
-        channel.set_duty_cycle(duty);
-        channel.enable();
+    pub fn write_motors(&mut self, motor_outputs: MotorOutputs) {
+        ch0.set_duty_cycle(((1.0 + motor_output[0]) * 1000.0 / 20.0) as u32);
+        ch0.enable();
+        ch1.set_duty_cycle(((1.0 + motor_output[1]) * 1000.0 / 20.0) as u32);
+        ch1.enable();
+        ch2.set_duty_cycle(((1.0 + motor_output[2]) * 1000.0 / 20.0) as u32);
+        ch2.enable();
+        ch3.set_duty_cycle(((1.0 + motor_output[3]) * 1000.0 / 20.0) as u32);
+        ch3.enable();
     }
 }
 /*

@@ -1,12 +1,17 @@
-use crate::{MixerConfig, MixerType, MotorConfig, MotorMixerCommandsDps, MotorMixerParameters};
+use crate::{MixerConfig, MixerType, MotorConfig, MotorFrequencies, MotorMixerCommandsDps, MotorMixerParameters};
+
+pub const MAX_MOTOR_COUNT: usize = 8;
+
+pub type MotorOutputs = [f32; MAX_MOTOR_COUNT];
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MotorMixerCommon {
+    pub outputs: MotorOutputs,
     mixer_type: u8,
     output_denominator: u8,
     output_count: u8,
-    mixer_config: MixerConfig,
-    motor_config: MotorConfig,
+    pub mixer_config: MixerConfig,
+    pub motor_config: MotorConfig,
     mixer_parameters: MotorMixerParameters,
     throttle_command: f32, // used for blackbox recording
     motors_is_on: bool,
@@ -17,6 +22,7 @@ pub struct MotorMixerCommon {
 impl MotorMixerCommon {
     fn new() -> Self {
         Self {
+            outputs: MotorOutputs::default(),
             mixer_type: MixerType::QuadX as u8,
             output_denominator: 1,
             output_count: 0,
@@ -42,6 +48,10 @@ pub trait MotorMixer {
     fn common_mut(&mut self) -> &mut MotorMixerCommon;
 
     fn output_to_motors(&mut self, commands_dps: MotorMixerCommandsDps);
+
+    fn output_denominator(&self) -> usize {
+        self.common().output_denominator as usize
+    }
 
     fn motors_is_on(&self) -> bool {
         self.common().motors_is_on
@@ -83,7 +93,8 @@ pub trait MotorMixer {
 }
 
 pub trait MotorMixerDriver {
-    fn write_to_motor(&mut self, index: u8, value: f32);
+    fn write_to_motors(&mut self, motor_outputs: MotorOutputs);
+    fn read_motor_frequencies_hz(&mut self) -> MotorFrequencies;
 }
 
 #[cfg(test)]

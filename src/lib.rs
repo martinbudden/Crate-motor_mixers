@@ -10,6 +10,7 @@ pub mod dynamic_idle_controller;
 pub mod mixer;
 pub mod mixer_calculations;
 pub mod mixer_config;
+pub mod mixer_quad_x_dshot;
 pub mod mixer_quad_x_pwm;
 pub mod mixer_quad_x_pwm_drivers;
 

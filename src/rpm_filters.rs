@@ -1,13 +1,14 @@
 //use defmt::debug;
 //use embassy_time::{Instant, Timer};
-use crate::rpm_filters_state_machine::{FUNDAMENTAL, RpmFilterMotorStates, SECOND_HARMONIC, State, THIRD_HARMONIC};
+use crate::{
+    mixer::MAX_MOTOR_COUNT,
+    rpm_filters_state_machine::{FUNDAMENTAL, RpmFilterMotorStates, SECOND_HARMONIC, State, THIRD_HARMONIC},
+};
 use filters::{BiquadFilterf32, Pt1Filterf32};
 
 use vector_quaternion_matrix::Vector3df32;
 
 pub const RPM_FILTER_HARMONICS_COUNT: usize = 3;
-pub const MAX_MOTOR_COUNT: usize = 8;
-
 pub type MotorFrequencies = [f32; MAX_MOTOR_COUNT];
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -43,7 +44,7 @@ impl RpmFilterBankConfig {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RpmFilterFrequencies {
-    pub motor_frequencies: MotorFrequencies,
+    pub motor_frequencies_hz: MotorFrequencies,
     pub min_hz: f32,
     pub max_hz: f32,
     pub half_of_max_hz: f32,
@@ -60,7 +61,7 @@ impl Default for RpmFilterFrequencies {
 impl RpmFilterFrequencies {
     pub fn new(fade_range_hz: f32) -> Self {
         Self {
-            motor_frequencies: MotorFrequencies::default(),
+            motor_frequencies_hz: MotorFrequencies::default(),
             min_hz: 100.0,
             max_hz: 0.0,
             half_of_max_hz: 0.0,
@@ -147,11 +148,11 @@ impl RpmFilterBank {
 
     /// Start the filter state machine
     /// This is called from MotorMixer::output_to_motors and so needs to be FAST.
-    pub fn start(&mut self, motor_frequencies: MotorFrequencies) {
+    pub fn start(&mut self, motor_frequencies_hz: MotorFrequencies) {
         if self.config.rpm_filter_lpf_hz == 0 {
             return;
         }
-        self.frequencies.motor_frequencies = motor_frequencies;
+        self.frequencies.motor_frequencies_hz = motor_frequencies_hz;
         self.state.start();
     }
 
