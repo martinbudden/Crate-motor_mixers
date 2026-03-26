@@ -5,27 +5,26 @@ use crate::{
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MotorMixerQuadXPwm {
-    state: MotorMixerCommon,
+    common: MotorMixerCommon,
+    outputs: [f32; Self::MOTOR_COUNT],
     max_duty: u32,
-    motor_count: u8,
-    outputs: [f32; 4],
 }
 
-impl MotorMixerQuadXPwm {
-    pub fn new() -> Self {
-        Self {
-            state: MotorMixerCommon::default(), // more idiomatic than calling new
-            max_duty: 255,
-            motor_count: 4,
-            outputs: [0.0, 0.0, 0.0, 0.0],
-        }
-    }
-}
-
-// it is idiomatic to implement default in terms of new
 impl Default for MotorMixerQuadXPwm {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl MotorMixerQuadXPwm {
+    const MOTOR_COUNT:usize = 4;
+
+    pub fn new() -> Self {
+        Self {
+            common: MotorMixerCommon::default(), // more idiomatic than calling new
+            outputs: <[f32; Self::MOTOR_COUNT]>::default(),
+            max_duty: 255,
+        }
     }
 }
 
@@ -39,10 +38,10 @@ impl MotorMixerDriver for MotorMixerQuadXPwm {
 
 impl MotorMixer for MotorMixerQuadXPwm {
     fn common(&self) -> &MotorMixerCommon {
-        &self.state
+        &self.common
     }
     fn common_mut(&mut self) -> &mut MotorMixerCommon {
-        &mut self.state
+        &mut self.common
     }
 
     // Calculate and output motor mix.
@@ -91,6 +90,6 @@ mod tests {
     #[test]
     fn new() {
         let quadx = MotorMixerQuadXPwm::new();
-        assert_eq!(4, quadx.motor_count);
+        assert_eq!(255, quadx.max_duty);
     }
 }

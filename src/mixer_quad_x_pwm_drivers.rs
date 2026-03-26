@@ -3,10 +3,6 @@ use cfg_if::cfg_if;
 cfg_if! {
 if #[cfg(feature = "rp2040")] {
 use embassy_rp::pwm::{Config, Pwm};
-//#[cfg(feature = "stm32")]
-//type PwmType = SimplePwm<'static, embassy_stm32::peripherals::TIM1>;
-//#[cfg(feature = "esp32")]
-//type PwmType = SimplePwm<'static, embassy_esp32::peripherals::LED_PWM>;
 //#[cfg(feature = "rp2040")]
 //type PwmType = SimplePwm<'static, embassy_rp::peripherals::PWM_SLICE0>;
 
@@ -60,6 +56,8 @@ let pwm1 = Pwm::new_output_ab(p.PWM_SLICE1, p.PIN_2, p.PIN_3, Config::default())
 */
 
 } else if #[cfg(feature = "stm32")] {
+//#[cfg(feature = "stm32")]
+//type PwmType = SimplePwm<'static, embassy_stm32::peripherals::TIM1>;
 
 use embassy_stm32::timer::simple_pwm::{SimplePwm, SimplePwmChannel};
 use embassy_stm32::timer::GeneralInstance4Channel;
@@ -121,6 +119,9 @@ let mut channel = LedcDriver::new(&ledc, SpeedMode::Low, &timer, pin).unwrap();
 
 channel.set_duty(1023).unwrap(); // 10-bit duty   }
 */
+//#[cfg(feature = "esp32")]
+//type PwmType = SimplePwm<'static, embassy_esp32::peripherals::LED_PWM>;
+
 use esp_idf_hal::ledc::{LedcDriver, LedcTimerDriver, SpeedMode, Channel};
 
 pub struct MotorDriver {

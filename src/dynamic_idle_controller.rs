@@ -1,22 +1,36 @@
 pub use filters::{FilterSignal, Pt1Filterf32};
 pub use pid_controller::{PidConstants, PidController, PidError};
 
+pub trait RpmHz: Sized {
+    fn to_hz(self) -> Self;
+    fn to_rpm(self) -> Self;
+}
+
+impl RpmHz for f32 {
+    fn to_hz(self) -> Self {
+        self / 60.0
+    }
+    fn to_rpm(self) -> Self {
+        self * 60.0
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct DynamicIdleControllerConfig {
-    pub dyn_idle_min_rpm_100: u8, // multiply this by 100 to get the actual min RPM
-    pub dyn_idle_p_gain: u8,
-    pub dyn_idle_i_gain: u8,
-    pub dyn_idle_d_gain: u8,
+    pub dyn_idle_min_rpm_d100: u8, // multiply this by 100 to get the actual min RPM
+    pub dyn_idle_p_gain_x100: u8, // divide this by 100 to get the actual kp
+    pub dyn_idle_i_gain_x100: u8,
+    pub dyn_idle_d_gain_x100: u8,
     pub dyn_idle_max_increase: u8,
 }
 
 impl DynamicIdleControllerConfig {
     pub fn new() -> Self {
         Self {
-            dyn_idle_min_rpm_100: 0,
-            dyn_idle_p_gain: 50,
-            dyn_idle_i_gain: 50,
-            dyn_idle_d_gain: 50,
+            dyn_idle_min_rpm_d100: 0,
+            dyn_idle_p_gain_x100: 50,
+            dyn_idle_i_gain_x100: 50,
+            dyn_idle_d_gain_x100: 50,
             dyn_idle_max_increase: 150,
         }
     }
@@ -78,20 +92,20 @@ impl DynamicIdleController {
 
         self.max_increase = self.config.dyn_idle_max_increase as f32 * 0.001;
 
-        self.minimum_allowed_motor_hz = self.config.dyn_idle_min_rpm_100 as f32 * 100.0 / 60.0;
+        self.minimum_allowed_motor_hz = self.config.dyn_idle_min_rpm_d100 as f32 * 100.0 / 60.0;
         self.pid.set_setpoint(self.minimum_allowed_motor_hz);
 
         // use Betaflight multiplier for compatibility with Betaflight Configurator
-        self.pid.set_kp(self.config.dyn_idle_p_gain as f32 * 0.00015);
+        self.pid.set_kp(self.config.dyn_idle_p_gain_x100 as f32 * 0.00015);
 
         let delta_t = self.task_interval_microseconds as f32 * 0.000001;
 
-        self.pid.set_ki(self.config.dyn_idle_i_gain as f32 * 0.01 * delta_t);
+        self.pid.set_ki(self.config.dyn_idle_i_gain_x100 as f32 * 0.01 * delta_t);
         // limit Iterm to range [0, _max_increase]
         self.pid.set_integral_max(self.max_increase);
         self.pid.set_integral_min(0.0);
 
-        self.pid.set_kd(self.config.dyn_idle_i_gain as f32 * 0.0000003 / delta_t);
+        self.pid.set_kd(self.config.dyn_idle_i_gain_x100 as f32 * 0.0000003 / delta_t);
         self.dterm_filter.set_k(800.0 * delta_t / 20.0); //approx 20ms D delay, arbitrarily suits many motors
     }
 
@@ -141,55 +155,49 @@ mod tests {
     #[test]
     fn dynamic_idle_controller() {
         const TASK_INTERVAL_MICROSECONDS: u32 = 1000;
-        let dynamic_idle_controller_config = DynamicIdleControllerConfig {
-            dyn_idle_min_rpm_100: 0,
-            dyn_idle_p_gain: 50,
-            dyn_idle_i_gain: 50,
-            dyn_idle_d_gain: 50,
-            dyn_idle_max_increase: 150,
-        };
-        let mut dynamic_idle_controller = DynamicIdleController::new(TASK_INTERVAL_MICROSECONDS);
-        dynamic_idle_controller.set_config(dynamic_idle_controller_config);
         const DELTA_T: f32 = TASK_INTERVAL_MICROSECONDS as f32 * 0.000001;
 
-        assert_eq!(0, dynamic_idle_controller.config().dyn_idle_min_rpm_100);
+        let dynamic_idle_controller_config = DynamicIdleControllerConfig::default();
+        let mut dynamic_idle_controller = DynamicIdleController::new(TASK_INTERVAL_MICROSECONDS);
+        dynamic_idle_controller.set_config(dynamic_idle_controller_config);
+
+        assert_eq!(0, dynamic_idle_controller.config().dyn_idle_min_rpm_d100);
 
         assert_eq!(0.0, dynamic_idle_controller.calculate_speed_increase(0.0, DELTA_T));
-        const SLOWEST_MOTOR_HZ: f32 = 1000.0 / 60.0; // 1000 RPM
+        const SLOWEST_MOTOR_HZ: f32 = 960.0 / 60.0; // 960 RPM = 16 Hz
+        assert_eq!(960.0, SLOWEST_MOTOR_HZ.to_rpm());
+        assert_eq!(SLOWEST_MOTOR_HZ, 960.0.to_hz());
         assert_eq!(0.0, dynamic_idle_controller.calculate_speed_increase(SLOWEST_MOTOR_HZ, DELTA_T));
     }
 
     #[test]
     fn dynamic_idle_controller_p_only() {
-        const MOTOR_HZ_500_RPM: f32 = 500.0 / 60.0;
-        const MOTOR_HZ_750_RPM: f32 = 750.0 / 60.0;
-        const MOTOR_HZ_1000_RPM: f32 = 1000.0 / 60.0;
-        const MOTOR_HZ_2000_RPM: f32 = 2000.0 / 60.0;
-
         const TASK_INTERVAL_MICROSECONDS: u32 = 1000;
         let dynamic_idle_controller_config = DynamicIdleControllerConfig {
-            dyn_idle_min_rpm_100: 10, // 10*100 = 1000 rpm
-            dyn_idle_p_gain: 50,
-            dyn_idle_i_gain: 0,
-            dyn_idle_d_gain: 0,
+            dyn_idle_min_rpm_d100: 12, // 12*100 = 1200 rpm
+            dyn_idle_p_gain_x100: 50, // 50/100 = 0.5
+            dyn_idle_i_gain_x100: 0,
+            dyn_idle_d_gain_x100: 0,
             dyn_idle_max_increase: 150,
         };
         let mut dynamic_idle_controller = DynamicIdleController::new(TASK_INTERVAL_MICROSECONDS);
         dynamic_idle_controller.set_config(dynamic_idle_controller_config);
         let delta_t = TASK_INTERVAL_MICROSECONDS as f32 * 0.000001;
 
-        assert_eq!(10, dynamic_idle_controller.config().dyn_idle_min_rpm_100);
-        assert_eq!(MOTOR_HZ_1000_RPM, dynamic_idle_controller.minimum_allowed_motor_hz());
+        assert_eq!(12, dynamic_idle_controller.config().dyn_idle_min_rpm_d100);
+        assert_eq!(20.0, 1200.0.to_hz());
+        assert_eq!(1200.0.to_hz(), dynamic_idle_controller.minimum_allowed_motor_hz());
 
-        // slowest motor faster than 1000 RPM, so no speed increase
-        assert_eq!(0.0, dynamic_idle_controller.calculate_speed_increase(MOTOR_HZ_2000_RPM, delta_t));
-        assert_eq!(0.0, dynamic_idle_controller.calculate_speed_increase(MOTOR_HZ_1000_RPM, delta_t));
+        // slowest motor faster than 1200 RPM, so no speed increase
+        assert_eq!(0.0, dynamic_idle_controller.calculate_speed_increase(2000.0.to_hz(), delta_t));
+        assert_eq!(0.0, dynamic_idle_controller.calculate_speed_increase(1200.0.to_hz(), delta_t));
 
-        // slowest motor slower than 1000 RPM, speed increase
-        assert_eq!(0.0625, dynamic_idle_controller.calculate_speed_increase(MOTOR_HZ_500_RPM, delta_t));
-        assert_eq!(0.0625, dynamic_idle_controller.calculate_speed_increase(MOTOR_HZ_500_RPM, delta_t));
-        // half the speed difference from 1000, so half the output, since PID is P-Term only
-        assert_f32_near!(0.03125, dynamic_idle_controller.calculate_speed_increase(MOTOR_HZ_750_RPM, delta_t));
-        assert_f32_near!(0.03125, dynamic_idle_controller.calculate_speed_increase(MOTOR_HZ_750_RPM, delta_t));
+        // slowest motor slower than 1200 RPM, so speed increase
+        assert_eq!(0.075, dynamic_idle_controller.calculate_speed_increase(600.0.to_hz(), delta_t));
+        assert_eq!(0.075, dynamic_idle_controller.calculate_speed_increase(600.0.to_hz(), delta_t));
+
+        // half the speed difference from 1200, so half the output, since PID is P-Term only
+        assert_f32_near!(0.0375, dynamic_idle_controller.calculate_speed_increase(900.0.to_hz(), delta_t));
+        assert_f32_near!(0.0375, dynamic_idle_controller.calculate_speed_increase(900.0.to_hz(), delta_t));
     }
 }
