@@ -162,7 +162,7 @@ impl RpmFilterBank {
     }
 
     /// Apply the notch filters for all selected harmonics for the given motor
-    pub fn filter(ctx: &mut RpmFilterBankContext, input: Vector3df32, motor_index: usize) -> Vector3df32 {
+    pub fn apply_notch_filters(ctx: &mut RpmFilterBankContext, input: Vector3df32, motor_index: usize) -> Vector3df32 {
         let mut ret = ctx.notch_filters[motor_index][FUNDAMENTAL].apply_weighted(input);
 
         if ctx.weights[SECOND_HARMONIC] != 0.0 {
@@ -180,7 +180,7 @@ pub trait RpmFilters {
     fn common_mut(&mut self) -> &mut RpmFilterBank;
     fn config(&self) -> &RpmFilterBankConfig;
 
-    fn filter(&mut self, value: Vector3df32, motor_index: usize) -> Vector3df32;
+    fn apply_notch_filters(&mut self, value: Vector3df32, motor_index: usize) -> Vector3df32;
 }
 
 impl RpmFilters for RpmFilterBank {
@@ -194,7 +194,7 @@ impl RpmFilters for RpmFilterBank {
         &self.common().config
     }
 
-    fn filter(&mut self, value: Vector3df32, _motor_index: usize) -> Vector3df32 {
+    fn apply_notch_filters(&mut self, value: Vector3df32, _motor_index: usize) -> Vector3df32 {
         value
     }
 }
