@@ -1,3 +1,14 @@
+/// Mixer calculations
+/// 
+/// Note mixer calculations are traditionally done using a "mix" matrix.
+/// This, however, is problematic: if a manoeuver causes the output
+/// to a motor to be clipped, then this clipping can cause
+/// an uncommanded change on another axis (eg the so-called "yaw jumps").
+/// 
+/// The mixer calculations are done on each axis individually,
+/// checking for overshoot and undershoot, and corrections
+/// applied to avoid unwanted jumps.
+
 use crate::{MotorMixerCommands, MotorMixerParameters};
 
 pub fn mix_wing(commands: MotorMixerCommands) -> [f32; 3] {
