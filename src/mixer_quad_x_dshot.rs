@@ -65,7 +65,7 @@ impl MotorMixer for MotorMixerQuadXDshot {
         // TODO: read the motor frequencies from the Dshot driver.
         // We retain the values, so they can be displayed on an OSD or recorded in blackbox, if required.
         self.motor_frequencies_hz = self.read_motor_frequencies_hz();
-        self.rpm_filters.start(self.motor_frequencies_hz);
+        self.rpm_filters.start_updating_filter_coefficients(self.motor_frequencies_hz);
 
         if self.output_this_cycle() {
             const MIXER_OUTPUT_SCALE_FACTOR: f32 = 1000.0;
@@ -91,7 +91,7 @@ impl MotorMixer for MotorMixerQuadXDshot {
         let iteration_count =
             (self.config.rpm_filter_harmonics as usize * Self::MOTOR_COUNT).div_ceil(self.output_denominator());
         for _ in 0..iteration_count {
-            self.rpm_filters.update();
+            self.rpm_filters.update_filter_coefficients_step();
         }
     }
 }

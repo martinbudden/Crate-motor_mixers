@@ -148,7 +148,7 @@ impl RpmFilterBank {
 
     /// Start the filter state machine
     /// This is called from MotorMixer::output_to_motors and so needs to be FAST.
-    pub fn start(&mut self, motor_frequencies_hz: MotorFrequencies) {
+    pub fn start_updating_filter_coefficients(&mut self, motor_frequencies_hz: MotorFrequencies) {
         if self.config.rpm_filter_lpf_hz == 0 {
             return;
         }
@@ -156,20 +156,24 @@ impl RpmFilterBank {
         self.state.start();
     }
 
-    pub fn update(&mut self) {
+    pub fn update_filter_coefficients_step(&mut self) {
         //self.state = self.state.update(self);
         self.state.update(&self.config, self.frequencies, &mut self.ctx);
     }
 
     /// Apply the notch filters for all selected harmonics for the given motor
-    pub fn apply_notch_filters(ctx: &mut RpmFilterBankContext, input: Vector3df32, motor_index: usize) -> Vector3df32 {
-        let mut ret = ctx.notch_filters[motor_index][FUNDAMENTAL].apply_weighted(input);
+    pub fn update_using_notch_filters(
+        ctx: &mut RpmFilterBankContext,
+        input: Vector3df32,
+        motor_index: usize,
+    ) -> Vector3df32 {
+        let mut ret = ctx.notch_filters[motor_index][FUNDAMENTAL].apply_notch_weighted(input);
 
         if ctx.weights[SECOND_HARMONIC] != 0.0 {
-            ret = ctx.notch_filters[motor_index][SECOND_HARMONIC].apply_weighted(input);
+            ret = ctx.notch_filters[motor_index][SECOND_HARMONIC].apply_notch_weighted(ret);
         };
         if ctx.weights[THIRD_HARMONIC] != 0.0 {
-            ret = ctx.notch_filters[motor_index][THIRD_HARMONIC].apply_weighted(input);
+            ret = ctx.notch_filters[motor_index][THIRD_HARMONIC].apply_notch_weighted(ret);
         };
         ret
     }
@@ -180,7 +184,7 @@ pub trait RpmFilters {
     fn common_mut(&mut self) -> &mut RpmFilterBank;
     fn config(&self) -> &RpmFilterBankConfig;
 
-    fn apply_notch_filters(&mut self, value: Vector3df32, motor_index: usize) -> Vector3df32;
+    fn update_using_notch_filters(&mut self, value: Vector3df32, motor_index: usize) -> Vector3df32;
 }
 
 impl RpmFilters for RpmFilterBank {
@@ -194,7 +198,7 @@ impl RpmFilters for RpmFilterBank {
         &self.common().config
     }
 
-    fn apply_notch_filters(&mut self, value: Vector3df32, _motor_index: usize) -> Vector3df32 {
+    fn update_using_notch_filters(&mut self, value: Vector3df32, _motor_index: usize) -> Vector3df32 {
         value
     }
 }
