@@ -1,4 +1,4 @@
-pub use filters::{FilterSignal, Pt1Filterf32};
+pub use filters::{Pt1Filterf32, SignalFilter};
 pub use pid_controller::{PidConstants, PidController, PidError};
 
 pub trait RpmHz: Sized {
@@ -125,7 +125,7 @@ impl DynamicIdleController {
         }
 
         let slowest_motor_hz_delta_filtered =
-            self.dterm_filter.apply(slowest_motor_hz - self.pid.previous_measurement());
+            self.dterm_filter.update(slowest_motor_hz - self.pid.previous_measurement());
         let speed_increase = self.pid.update_delta(slowest_motor_hz, slowest_motor_hz_delta_filtered, delta_t);
 
         /*if (debug.get_mode() == DEBUG_DYN_IDLE) {

@@ -1,6 +1,6 @@
 use crate::mixer::MAX_MOTOR_COUNT;
 use crate::rpm_filters::{RpmFilterBankConfig, RpmFilterBankContext, RpmFilterFrequencies};
-use filters::FilterSignal;
+use filters::SignalFilter;
 
 pub const FUNDAMENTAL: usize = 0;
 pub const SECOND_HARMONIC: usize = 1;
@@ -74,7 +74,7 @@ impl State {
             }
             State::Fundamental(motor_index) => {
                 let frequency_hz = frequencies.motor_frequencies_hz[motor_index];
-                let frequency_hz_unclamped = ctx.motor_rpm_filters[motor_index].apply(frequency_hz);
+                let frequency_hz_unclamped = ctx.motor_rpm_filters[motor_index].update(frequency_hz);
                 let frequency_hz = frequency_hz_unclamped.clamp(frequencies.min_hz, frequencies.max_hz);
                 ctx.motor_states[motor_index].frequency_hz_unclamped = frequency_hz_unclamped;
 

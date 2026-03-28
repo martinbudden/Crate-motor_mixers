@@ -167,13 +167,13 @@ impl RpmFilterBank {
         input: Vector3df32,
         motor_index: usize,
     ) -> Vector3df32 {
-        let mut ret = ctx.notch_filters[motor_index][FUNDAMENTAL].apply_notch_weighted(input);
+        let mut ret = ctx.notch_filters[motor_index][FUNDAMENTAL].update_notch_weighted(input);
 
         if ctx.weights[SECOND_HARMONIC] != 0.0 {
-            ret = ctx.notch_filters[motor_index][SECOND_HARMONIC].apply_notch_weighted(ret);
+            ret = ctx.notch_filters[motor_index][SECOND_HARMONIC].update_notch_weighted(ret);
         };
         if ctx.weights[THIRD_HARMONIC] != 0.0 {
-            ret = ctx.notch_filters[motor_index][THIRD_HARMONIC].apply_notch_weighted(ret);
+            ret = ctx.notch_filters[motor_index][THIRD_HARMONIC].update_notch_weighted(ret);
         };
         ret
     }

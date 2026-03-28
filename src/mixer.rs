@@ -1,12 +1,14 @@
 use crate::{MixerConfig, MixerType, MotorConfig, MotorFrequencies, MotorMixerCommandsDps, MotorMixerParameters};
+use filters::SlewRateLimiterf32;
 
 pub const MAX_MOTOR_COUNT: usize = 8;
 
 pub type MotorOutputs = [f32; MAX_MOTOR_COUNT];
-
+pub type MotorOutputFilters = [SlewRateLimiterf32; MAX_MOTOR_COUNT];
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MotorMixerCommon {
     pub outputs: MotorOutputs,
+    pub output_filters: MotorOutputFilters,
     mixer_type: u8,
     output_denominator: u8,
     output_count: u8,
@@ -23,6 +25,7 @@ impl MotorMixerCommon {
     fn new() -> Self {
         Self {
             outputs: MotorOutputs::default(),
+            output_filters: MotorOutputFilters::default(),
             mixer_type: MixerType::QuadX as u8,
             output_denominator: 1,
             output_count: 0,

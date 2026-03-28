@@ -64,8 +64,12 @@ impl MotorMixer for MotorMixerQuadXPwm {
                 pitch: commands_dps.pitch_dps * MIXER_OUTPUT_SCALE_FACTOR,
                 yaw: commands_dps.yaw_dps * MIXER_OUTPUT_SCALE_FACTOR,
             };
-            self.common.outputs[..Self::MOTOR_COUNT].copy_from_slice(&mix_quad_x(commands, &mut mix_params));
             self.set_throttle_command(mix_params.throttle);
+
+            self.common.outputs[..Self::MOTOR_COUNT].copy_from_slice(&mix_quad_x(commands, &mut mix_params));
+            for ii in 0..Self::MOTOR_COUNT {
+                self.common.outputs[ii] = self.common.output_filters[ii].update(self.common.outputs[ii]);
+            }
 
             self.write_to_motors(self.common.outputs);
         }

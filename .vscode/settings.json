@@ -55,6 +55,7 @@
         "ledc",
         "libc",
         "libloading",
+        "Limiterf",
         "litrs",
         "looptime",
         "lowpass",

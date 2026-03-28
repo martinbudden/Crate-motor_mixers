@@ -1106,7 +1106,7 @@ dependencies = [
 [[package]]
 name = "filters"
 version = "0.1.0"
-source = "git+https://github.com/martinbudden/Crate-filters#a45879a1300b955d20503081454bfc7acb6d11d7"
+source = "git+https://github.com/martinbudden/Crate-filters#798834c65e04e08c62d429f5e343ce39e7445b8f"
 dependencies = [
  "num-traits",
  "vector-quaternion-matrix",
