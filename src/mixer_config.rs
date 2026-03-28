@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct MotorMixerCommands {
     // throttle commands are in the range [0.0, 1.0]
@@ -81,7 +83,7 @@ pub enum MixerType {
     OctoXp = 27,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub struct MixerConfig {
     // constants compatible with Betaflight mixerMode_e enums.
     pub mixer_type: u8,
@@ -122,7 +124,7 @@ pub enum MotorProtocol {
     //Count = 10,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub struct MotorDeviceConfig {
     pub motor_pwm_rate: u16, // The update rate of motor outputs (50-498Hz)
     pub motor_protocol: u8,
@@ -153,7 +155,7 @@ impl Default for MotorDeviceConfig {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub struct MotorConfig {
     pub device: MotorDeviceConfig,
     pub motor_idle: u16, // percentage of the motor range added to the disarmed value to give the idle value
@@ -182,7 +184,7 @@ impl Default for MotorConfig {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub struct ServoDeviceConfig {
     // PWM values, in milliseconds, common range is 1000-2000 (1ms to 2ms)
     pub servo_center_pulse: u16, // This is the value for servos when they should be in the middle. e.g. 1500.
@@ -201,7 +203,7 @@ impl Default for ServoDeviceConfig {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub struct ServoConfig {
     pub device: ServoDeviceConfig,
     pub servo_lowpass_freq: u16, // lowpass servo filter frequency selection; 1/1000ths of loop freq
@@ -232,17 +234,21 @@ mod tests {
 
     fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
     fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
+    fn is_config<
+        T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq + Serialize + for<'a> Deserialize<'a>,
+    >() {
+    }
 
     #[test]
     fn normal_types() {
         is_full::<MotorMixerCommands>();
         is_full::<MotorMixerCommandsDps>();
         is_full::<MotorMixerParameters>();
-        is_full::<MixerConfig>();
-        is_full::<MotorDeviceConfig>();
-        is_full::<MotorConfig>();
-        is_full::<ServoDeviceConfig>();
-        is_full::<ServoConfig>();
+        is_config::<MixerConfig>();
+        is_config::<MotorDeviceConfig>();
+        is_config::<MotorConfig>();
+        is_config::<ServoDeviceConfig>();
+        is_config::<ServoConfig>();
     }
     #[test]
     fn new() {

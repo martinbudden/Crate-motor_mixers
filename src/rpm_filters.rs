@@ -1,5 +1,6 @@
 //use defmt::debug;
 //use embassy_time::{Instant, Timer};
+use serde::{Deserialize, Serialize};
 use crate::{
     mixer::MAX_MOTOR_COUNT,
     rpm_filters_state_machine::{FUNDAMENTAL, RpmFilterMotorStates, SECOND_HARMONIC, State, THIRD_HARMONIC},
@@ -11,7 +12,7 @@ use vector_quaternion_matrix::Vector3df32;
 pub const RPM_FILTER_HARMONICS_COUNT: usize = 3;
 pub type MotorFrequencies = [f32; MAX_MOTOR_COUNT];
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub struct RpmFilterBankConfig {
     pub rpm_filter_fade_range_hz: u16, // range in which notch filters fade down to min_hz
     pub rpm_filter_q_x100: u16,        // Q of the notch filters * 100
@@ -208,10 +209,14 @@ mod tests {
 
     fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
     fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
+    fn is_config<
+        T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq + Serialize + for<'a> Deserialize<'a>,
+    >() {
+    }
 
     #[test]
     fn normal_types() {
-        is_full::<RpmFilterBankConfig>();
+        is_config::<RpmFilterBankConfig>();
         is_full::<RpmFilterBank>();
     }
     #[test]

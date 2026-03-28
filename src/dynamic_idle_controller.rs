@@ -1,5 +1,6 @@
 pub use filters::{Pt1Filterf32, SignalFilter};
 pub use pid_controller::{PidConstants, PidController, PidError};
+use serde::{Deserialize, Serialize};
 
 pub trait RpmHz: Sized {
     fn to_hz(self) -> Self;
@@ -15,7 +16,7 @@ impl RpmHz for f32 {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub struct DynamicIdleControllerConfig {
     pub dyn_idle_min_rpm_d100: u8, // multiply this by 100 to get the actual min RPM
     pub dyn_idle_p_gain_x100: u8,  // divide this by 100 to get the actual kp
@@ -146,10 +147,14 @@ mod tests {
 
     fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
     fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
+    fn is_config<
+        T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq + Serialize + for<'a> Deserialize<'a>,
+    >() {
+    }
 
     #[test]
     fn normal_types() {
-        is_full::<DynamicIdleControllerConfig>();
+        is_config::<DynamicIdleControllerConfig>();
         is_full::<DynamicIdleController>();
     }
     #[test]
@@ -199,5 +204,21 @@ mod tests {
         // half the speed difference from 1200, so half the output, since PID is P-Term only
         assert_f32_near!(0.0375, dynamic_idle_controller.calculate_speed_increase(900.0.to_hz(), delta_t));
         assert_f32_near!(0.0375, dynamic_idle_controller.calculate_speed_increase(900.0.to_hz(), delta_t));
+    }
+    #[test]
+    fn config() {
+        use postcard::{from_bytes, to_slice};
+
+        let mut config = DynamicIdleControllerConfig::default();
+        config.dyn_idle_d_gain_x100 = 119;
+
+        let mut buf = [0u8; 64]; // Size based on your config size
+        let data = to_slice(&config, &mut buf).unwrap();
+        assert_eq!(5, data.len());
+
+    
+        // Deserialize using postcard
+        let config_read:DynamicIdleControllerConfig = from_bytes(&data).unwrap_or_else(|_| DynamicIdleControllerConfig::default());
+        assert_eq!(119, config_read.dyn_idle_d_gain_x100);
     }
 }
