@@ -4,7 +4,7 @@ use crate::{
     mixer::MAX_MOTOR_COUNT,
     rpm_filters_state_machine::{FUNDAMENTAL, RpmFilterMotorStates, SECOND_HARMONIC, State, THIRD_HARMONIC},
 };
-use filters::{BiquadFilterf32, Pt1Filterf32};
+use filters::{BiquadFilterVector3df32, Pt1Filterf32};
 use serde::{Deserialize, Serialize};
 
 use vector_quaternion_matrix::Vector3df32;
@@ -71,7 +71,7 @@ impl RpmFilterFrequencies {
         }
     }
 }
-type NotchFilters = [[BiquadFilterf32<Vector3df32>; RPM_FILTER_HARMONICS_COUNT]; MAX_MOTOR_COUNT];
+type NotchFilters = [[BiquadFilterVector3df32; RPM_FILTER_HARMONICS_COUNT]; MAX_MOTOR_COUNT];
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct RpmFilterBankContext {
     pub motor_rpm_filters: [Pt1Filterf32; MAX_MOTOR_COUNT],
