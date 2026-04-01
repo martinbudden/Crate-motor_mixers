@@ -1,6 +1,7 @@
+use serde::{Deserialize, Serialize};
+
 pub use filters::{Pt1Filterf32, SignalFilter};
 pub use pid_controller::{PidConstants, PidController, PidError};
-use serde::{Deserialize, Serialize};
 
 pub trait RpmHz: Sized {
     fn to_hz(self) -> Self;
@@ -61,7 +62,7 @@ pub struct DynamicIdleController {
     max_increase: f32,
     // dynamic_idle_max_increase_delay_k :f32,
     pid: PidController<f32>, // PID to dynamic idle, ie to ensure slowest motor does not go below min RPS
-    dterm_filter: Pt1Filterf32<f32>,
+    dterm_filter: Pt1Filterf32,
     config: DynamicIdleControllerConfig,
 }
 
@@ -216,9 +217,9 @@ mod tests {
         let data = to_slice(&config, &mut buf).unwrap();
         assert_eq!(5, data.len());
 
-    
         // Deserialize using postcard
-        let config_read:DynamicIdleControllerConfig = from_bytes(&data).unwrap_or_else(|_| DynamicIdleControllerConfig::default());
+        let config_read: DynamicIdleControllerConfig =
+            from_bytes(&data).unwrap_or_else(|_| DynamicIdleControllerConfig::default());
         assert_eq!(119, config_read.dyn_idle_d_gain_x100);
     }
 }
