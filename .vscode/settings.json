@@ -29,6 +29,7 @@
         "corasick",
         "cordyceps",
         "cpufeatures",
+        "debuginfo",
         "defmt",
         "deque",
         "desynchronization",

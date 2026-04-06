@@ -1,6 +1,8 @@
 use crate::mixer::MAX_MOTOR_COUNT;
 use crate::rpm_filters::{RpmFilterBankConfig, RpmFilterBankContext, RpmFilterFrequencies};
 use filters::SignalFilter;
+#[allow(unused)]
+use vector_quaternion_matrix::TrigonometricMethods;
 
 pub const FUNDAMENTAL: usize = 0;
 pub const SECOND_HARMONIC: usize = 1;
