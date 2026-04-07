@@ -11,6 +11,11 @@ rustdoc-args = ["--html-in-header", "katex-header.html"]
 
 
 [features]
+default = ["libm"]
+std = ["vector-quaternion-matrix/std", "filters/std"]
+libm = ["vector-quaternion-matrix/libm", "filters/libm", "pid-controller/libm"]
+no_align = ["vector-quaternion-matrix/no_align", "filters/no_align"]
+simd = ["vector-quaternion-matrix/simd", "filters/simd"]
 # cargo build --features rp2040 
 #default = ["rp2040"]
 #default = ["stm32"]
@@ -26,6 +31,9 @@ LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_ROLL_PITCH = []
 LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_YAW = []
 
 [dependencies]
+vector-quaternion-matrix = { git = "https://github.com/martinbudden/crate-vector-quaternion-matrix", default-features = false }
+pid-controller = { git = "https://github.com/martinbudden/crate-pid-controller", default-features = false }
+filters = { git = "https://github.com/martinbudden/crate-filters", default-features = false }
 # Use embedded-hal for I2C/SPI traits
 embedded-hal = "1.0.0"
 # Embedded HAL traits (often re-exported by embassy-rp)
@@ -64,9 +72,6 @@ cfg-if = "1.0"
 strum = "0.28.0"
 strum_macros = "0.28.0"
 
-vector-quaternion-matrix = { git = "https://github.com/martinbudden/crate-vector-quaternion-matrix" }
-pid-controller = { git = "https://github.com/martinbudden/crate-pid-controller" }
-filters = { git = "https://github.com/martinbudden/crate-filters" }
 # For easy flash access on the RP2040
 embedded-storage = "0.3"
 serde = { version = "1.0.228", default-features = false, features = ["derive"] }

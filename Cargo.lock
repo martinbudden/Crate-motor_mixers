@@ -1098,9 +1098,9 @@ dependencies = [
 
 [[package]]
 name = "fastrand"
-version = "2.4.0"
+version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a043dc74da1e37d6afe657061213aa6f425f855399a11d3463c6ecccc4dfda1f"
+checksum = "9f1f227452a390804cdb637b74a86990f2a7d7ba4b7d5693aac9b4dd6defd8d6"
 
 [[package]]
 name = "filetime"
@@ -1116,9 +1116,10 @@ dependencies = [
 [[package]]
 name = "filters"
 version = "0.1.0"
-source = "git+https://github.com/martinbudden/crate-filters#ae6e82ce2834f306428fe7a5db71ca7683938df5"
+source = "git+https://github.com/martinbudden/crate-filters#9fe6e6eda5816a56021f44574ba6bb2f48c7b335"
 dependencies = [
  "num-traits",
+ "rustc_version 0.4.1",
  "vector-quaternion-matrix",
 ]
 
@@ -1814,9 +1815,10 @@ checksum = "5be167a7af36ee22fe3115051bc51f6e6c7054c9348e28deb4f49bd6f705a315"
 [[package]]
 name = "pid-controller"
 version = "0.1.0"
-source = "git+https://github.com/martinbudden/crate-pid-controller#f7c57d158b314aa2337434b78396f780db10e952"
+source = "git+https://github.com/martinbudden/crate-pid-controller#bc3cac9316fdba021558010e954affa63d62d052"
 dependencies = [
  "num-traits",
+ "rustc_version 0.4.1",
 ]
 
 [[package]]
@@ -2574,7 +2576,7 @@ checksum = "77439c1b53d2303b20d9459b1ade71a83c716e3f9c34f3228c00e6f185d6c002"
 [[package]]
 name = "vector-quaternion-matrix"
 version = "0.1.0"
-source = "git+https://github.com/martinbudden/crate-vector-quaternion-matrix#801d250fedcf5c90681697ebfadab28553a94d8d"
+source = "git+https://github.com/martinbudden/crate-vector-quaternion-matrix#9390c80f08355243e2eb6b4c86d6a1ff42bbbad4"
 dependencies = [
  "approx",
  "cfg-if",
