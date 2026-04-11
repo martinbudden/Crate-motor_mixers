@@ -1,4 +1,4 @@
-/// DShot Encoder/Decoder
+/// Dshot Encoder/Decoder
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct DshotCodec;
 
@@ -39,12 +39,12 @@ impl DshotCodec {
     pub const TELEMETRY_TYPE_COUNT: u16 = 8;
     pub const TELEMETRY_INVALID: u16 = 0xFFFF;
 
-    /// Convert PWM (1000-2000) to DShot value
+    /// Convert PWM (1000-2000) to Dshot value
     pub fn pwm_to_dshot(value: u16) -> u16 {
         ((value - 1000) * 2) + 47
     }
 
-    /// Convert PWM to DShot with clipping
+    /// Convert PWM to Dshot with clipping
     pub fn pwm_to_dshot_clamped(value: u16) -> u16 {
         if value > 2000 {
             Self::pwm_to_dshot(2000)
@@ -75,13 +75,13 @@ impl DshotCodec {
         Self::checksum_bidirectional(value >> 4) == (value & 0x0F)
     }
 
-    /// Create unidirectional DShot frame
+    /// Create unidirectional Dshot frame
     pub fn frame_unidirectional(value: u16) -> u16 {
         let value = value << 1;
         (value << 4) | Self::checksum_unidirectional(value)
     }
 
-    /// Create bidirectional DShot frame
+    /// Create bidirectional Dshot frame
     pub fn frame_bidirectional(value: u16) -> u16 {
         let value = value << 1;
         (value << 4) | Self::checksum_bidirectional(value)
@@ -98,6 +98,8 @@ impl DshotCodec {
     pub const NIBBLE_TO_QUINTET: [u8; 16] =
         [0x19, 0x1B, 0x12, 0x13, 0x1D, 0x15, 0x16, 0x17, 0x1A, 0x09, 0x0A, 0x0B, 0x1E, 0x0D, 0x0E, 0x0F];
 
+    /// Decode `erpm`
+    /// # Errors `TELEMETRY_INVALID`
     pub fn decode_erpm(value: u16) -> Result<u16, u16> {
         let mut value = value;
         // eRPM range
@@ -132,9 +134,10 @@ impl DshotCodec {
     /// Decode samples returned by Raspberry Pi PIO implementation.
     ///
     /// Returns the value of the Extended Dshot Telemetry (EDT) frame (without the  checksum).
+    /// # Errors `TELEMETRY_INVALID`
     pub fn decode_samples(value: u64) -> Result<(u32, u16), u16> {
         // telemetry data must start with a 0, so if the first bit is high, we don't have any data
-        if (value & 0x8000000000000000) != 0 {
+        if (value & 0x8000_0000_0000_0000) != 0 {
             return Err(Self::TELEMETRY_INVALID);
         }
 
@@ -146,7 +149,8 @@ impl DshotCodec {
         // starting at 2nd bit since we know our data starts with a 0
         // 56 samples @ 0.917us sample rate = 51.33us sampled
         // loop the mask from 2nd MSB to  LSB
-        let mut mask: u64 = 0x4000000000000000;
+        let mut mask: u64 = 0x4000_0000_0000_0000;
+        #[allow(clippy::if_not_else)] // TODO: fix this
         while mask != 0 {
             if ((value & mask) != 0) != (current_bit != 0) {
                 // if the masked bit doesn't match the current string of bits then end the current string and flip current_bit
@@ -198,7 +202,7 @@ impl DshotCodec {
             return Err(Self::TELEMETRY_INVALID);
         }
         match Self::decode_telemetry_frame(result >> 4) {
-            Ok((result, telemetry_type)) => Ok((result as u32, telemetry_type)),
+            Ok((result, telemetry_type)) => Ok((u32::from(result), telemetry_type)),
             Err(_) => Err(Self::TELEMETRY_INVALID),
         }
     }
@@ -210,10 +214,10 @@ impl DshotCodec {
     // see [DSHOT - the missing Handbook](https://brushlesswhoop.com/dshot-and-bidirectional-dshot/)
     // for a good description of these conversions
     pub fn erpm_to_gcr20(value: u16) -> u32 {
-        let mut ret: u32 = Self::NIBBLE_TO_QUINTET[(value & 0x1F) as usize] as u32;
-        ret |= (Self::NIBBLE_TO_QUINTET[((value >> 4) & 0x1F) as usize] as u32) << 5;
-        ret |= (Self::NIBBLE_TO_QUINTET[((value >> 8) & 0x1F) as usize] as u32) << 10;
-        ret |= (Self::NIBBLE_TO_QUINTET[((value >> 12) & 0x1F) as usize] as u32) << 15;
+        let mut ret = u32::from(Self::NIBBLE_TO_QUINTET[(value & 0x1F) as usize]);
+        ret |= u32::from(Self::NIBBLE_TO_QUINTET[((value >> 4) & 0x1F) as usize]) << 5;
+        ret |= u32::from(Self::NIBBLE_TO_QUINTET[((value >> 8) & 0x1F) as usize]) << 10;
+        ret |= u32::from(Self::NIBBLE_TO_QUINTET[((value >> 12) & 0x1F) as usize]) << 15;
         ret
     }
 
@@ -240,6 +244,7 @@ impl DshotCodec {
         value ^ (value >> 1)
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     pub fn gcr20_to_erpm(value: u32) -> u16 {
         let mut ret: u32 = Self::QUINTET_TO_NIBBLE[(value & 0x1F) as usize];
         ret |= Self::QUINTET_TO_NIBBLE[((value >> 5) & 0x1F) as usize] << 4;
@@ -283,21 +288,21 @@ mod tests {
 
     #[test]
     fn dshot_codec_checksum() {
-        assert_eq!(0b000000000110, DshotCodec::checksum_unidirectional(0b100000101100));
-        assert_eq!(0b000000001001, DshotCodec::checksum_bidirectional(0b100000101100));
+        assert_eq!(0b0000_0000_0110, DshotCodec::checksum_unidirectional(0b1000_0010_1100));
+        assert_eq!(0b0000_0000_1001, DshotCodec::checksum_bidirectional(0b1000_0010_1100));
 
-        assert_eq!(0b1000001011000110, DshotCodec::frame_unidirectional(0b010000010110));
-        assert_eq!(0b1000001011001001, DshotCodec::frame_bidirectional(0b010000010110));
+        assert_eq!(0b1000_0010_1100_0110, DshotCodec::frame_unidirectional(0b0100_0001_0110));
+        assert_eq!(0b1000_0010_1100_1001, DshotCodec::frame_bidirectional(0b0100_0001_0110));
 
-        assert_eq!(true, DshotCodec::checksum_unidirectional_is_ok(DshotCodec::frame_unidirectional(0b010000010110)));
-        assert_eq!(true, DshotCodec::checksum_bidirectional_is_ok(DshotCodec::frame_bidirectional(0b010000010110)));
+        assert!(DshotCodec::checksum_unidirectional_is_ok(DshotCodec::frame_unidirectional(0b0100_0001_0110)));
+        assert!(DshotCodec::checksum_bidirectional_is_ok(DshotCodec::frame_bidirectional(0b0100_0001_0110)));
     }
     #[test]
     fn dshot_codec_mappings() {
-        assert_eq!(0b11010100101111010110, DshotCodec::erpm_to_gcr20(0b1000001011000110));
-        assert_eq!(0b1000001011000110, DshotCodec::gcr20_to_erpm(0b11010100101111010110));
+        assert_eq!(0b1101_0100_1011_1101_0110, DshotCodec::erpm_to_gcr20(0b1000_0010_1100_0110));
+        assert_eq!(0b1000_0010_1100_0110, DshotCodec::gcr20_to_erpm(0b1101_0100_1011_1101_0110));
 
-        assert_eq!(0b010101010101010101010, DshotCodec::gcr21_to_gcr20(0b011001100110011001100));
+        assert_eq!(0b0_1010_1010_1010_1010_1010, DshotCodec::gcr21_to_gcr20(0b0_1100_1100_1100_1100_1100));
         // TODO: check dshot_codec_mappings
         //assert_eq!(0b011001100110011001100, DshotCodec::gr20_to_gcr21(0b10101010101010101010));
     }

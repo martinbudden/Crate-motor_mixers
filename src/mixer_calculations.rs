@@ -9,6 +9,8 @@
 //! checking for overshoot and undershoot, and corrections
 //! applied to avoid unwanted jumps.
 
+#![allow(clippy::excessive_precision)]
+
 use crate::{MotorMixerCommands, MotorMixerParameters};
 #[allow(unused)]
 use vector_quaternion_matrix::TrigonometricMethods;
@@ -380,6 +382,7 @@ pub fn mix_hex_x(commands: MotorMixerCommands, params: &mut MotorMixerParameters
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::float_cmp)]
     use approx::assert_abs_diff_eq;
 
     use super::*;
@@ -394,7 +397,7 @@ mod tests {
     }
     #[test]
     fn test_mixer_quad_x_roll() {
-        const EPSILON: f32 = 0.0000001;
+        const EPSILON: f32 = 0.000_000_1;
         let mut commands = MotorMixerCommands::default();
         let mut mix_params = MotorMixerParameters::default();
 
@@ -443,7 +446,7 @@ mod tests {
     }
     #[test]
     fn test_mixer_quad_x_pitch() {
-        const EPSILON: f32 = 0.0000001;
+        const EPSILON: f32 = 0.000_000_1;
         let mut commands = MotorMixerCommands::default();
         let mut mix_params = MotorMixerParameters::default();
 
@@ -482,7 +485,7 @@ mod tests {
     }
     #[test]
     fn test_mixer_quad_x_yaw() {
-        const EPSILON: f32 = 0.0000001;
+        const EPSILON: f32 = 0.000_000_1;
         let mut commands = MotorMixerCommands::default();
         let mut mix_params = MotorMixerParameters::default();
         commands.throttle = 0.4;
@@ -554,7 +557,7 @@ mod tests {
         const FR: usize = 1;
         const FL: usize = 2;
         const S0: usize = 3;
-        const EPSILON: f32 = 0.0000001;
+        const EPSILON: f32 = 0.000_000_1;
         let mut commands = MotorMixerCommands::default();
         let mut mix_params = MotorMixerParameters {
             motor_output_min: 0.1,
@@ -578,11 +581,11 @@ mod tests {
         commands.yaw = 0.3;
         let outputs = mix_tricopter(commands, &mut mix_params);
         assert_eq!(0.3, mix_params.undershoot);
-        assert_eq!(-0.5794151, mix_params.overshoot);
+        assert_eq!(-0.579_415_1, mix_params.overshoot);
         assert_eq!(0.4, mix_params.throttle);
         assert_eq!(0.4, outputs[FL]);
         assert_eq!(0.4, outputs[FR]);
-        assert_eq!(0.42058489, outputs[REAR]);
+        assert_eq!(0.420_584_89, outputs[REAR]);
         assert_eq!(0.3, outputs[S0]);
 
         commands.yaw = 1.0;

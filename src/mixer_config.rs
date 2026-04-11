@@ -124,6 +124,7 @@ pub enum MotorProtocol {
     //Count = 10,
 }
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub struct MotorDeviceConfig {
     pub motor_pwm_rate: u16, // The update rate of motor outputs (50-498Hz)

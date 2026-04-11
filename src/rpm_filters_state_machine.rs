@@ -59,7 +59,7 @@ impl State {
     }
 
     /// Perform one step of the state machine
-    /// This is called from MotorMixer::rpm_filter_set_frequency_hz_iteration_step and so needs to be FAST.
+    /// This is called from `MotorMixer::rpm_filter_set_frequency_hz_iteration_step` and so needs to be FAST.
     pub fn update(
         &mut self,
         config: &RpmFilterBankConfig,
@@ -131,7 +131,7 @@ impl State {
                     // no point filtering the second harmonic if it is above the Nyquist frequency
                     ctx.weights[SECOND_HARMONIC] = 0.0;
                 } else {
-                    ctx.weights[SECOND_HARMONIC] = config.rpm_filter_weights_x100[SECOND_HARMONIC] as f32 * 0.01;
+                    ctx.weights[SECOND_HARMONIC] = f32::from(config.rpm_filter_weights_x100[SECOND_HARMONIC]) * 0.01;
                     // sin(2θ) = 2 * sin(θ) * cos(θ)
                     // cos(2θ) = 2 * cos^2(θ) - 1
                     let sin_2_omega = motor_state.sin_omega * motor_state.cos_omega * 2.0;
@@ -161,7 +161,7 @@ impl State {
                     // no point filtering the third harmonic if it is above the Nyquist frequency
                     ctx.weights[THIRD_HARMONIC] = 0.0;
                 } else {
-                    ctx.weights[THIRD_HARMONIC] = config.rpm_filter_weights_x100[THIRD_HARMONIC] as f32 * 0.01;
+                    ctx.weights[THIRD_HARMONIC] = f32::from(config.rpm_filter_weights_x100[THIRD_HARMONIC]) * 0.01;
                     // sin(3θ) = 3 * sin(θ)   - 4 * sin^3(θ)
                     //         = sin(θ) * ( 3 - 4 * sin^2(θ) )
                     //         = sin(θ) * ( 3 - 4 * (1 - cos^2(θ)) )

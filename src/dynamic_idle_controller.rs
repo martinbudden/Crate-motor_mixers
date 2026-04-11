@@ -92,22 +92,23 @@ impl DynamicIdleController {
     pub fn set_config(&mut self, config: DynamicIdleControllerConfig) {
         self.config = config;
 
-        self.max_increase = self.config.dyn_idle_max_increase as f32 * 0.001;
+        self.max_increase = f32::from(self.config.dyn_idle_max_increase) * 0.001;
 
-        self.minimum_allowed_motor_hz = self.config.dyn_idle_min_rpm_d100 as f32 * 100.0 / 60.0;
+        self.minimum_allowed_motor_hz = f32::from(self.config.dyn_idle_min_rpm_d100) * 100.0 / 60.0;
         self.pid.set_setpoint(self.minimum_allowed_motor_hz);
 
         // use Betaflight multiplier for compatibility with Betaflight Configurator
-        self.pid.set_kp(self.config.dyn_idle_p_gain_x100 as f32 * 0.00015);
+        self.pid.set_kp(f32::from(self.config.dyn_idle_p_gain_x100) * 0.00015);
 
-        let delta_t = self.task_interval_microseconds as f32 * 0.000001;
+        #[allow(clippy::cast_precision_loss)]
+        let delta_t = self.task_interval_microseconds as f32 * 0.000_001;
 
-        self.pid.set_ki(self.config.dyn_idle_i_gain_x100 as f32 * 0.01 * delta_t);
+        self.pid.set_ki(f32::from(self.config.dyn_idle_i_gain_x100) * 0.01 * delta_t);
         // limit Iterm to range [0, _max_increase]
         self.pid.set_integral_max(self.max_increase);
         self.pid.set_integral_min(0.0);
 
-        self.pid.set_kd(self.config.dyn_idle_i_gain_x100 as f32 * 0.0000003 / delta_t);
+        self.pid.set_kd(f32::from(self.config.dyn_idle_i_gain_x100) * 0.000_000_3 / delta_t);
         self.dterm_filter.set_k(800.0 * delta_t / 20.0); //approx 20ms D delay, arbitrarily suits many motors
     }
 
@@ -143,8 +144,15 @@ impl DynamicIdleController {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::float_cmp)]
     use super::*;
-    use assert_float_eq::assert_f32_near;
+    #[allow(unused)]
+    use approx::assert_abs_diff_eq;
+    macro_rules! assert_near {
+        ($left:expr, $right:expr) => {
+            approx::assert_abs_diff_eq!($left, $right, epsilon = 4e-6);
+        };
+    }
 
     fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
     fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
@@ -161,7 +169,9 @@ mod tests {
     #[test]
     fn dynamic_idle_controller() {
         const TASK_INTERVAL_MICROSECONDS: u32 = 1000;
-        const DELTA_T: f32 = TASK_INTERVAL_MICROSECONDS as f32 * 0.000001;
+        const SLOWEST_MOTOR_HZ: f32 = 960.0 / 60.0; // 960 RPM = 16 Hz
+        #[allow(clippy::cast_precision_loss)]
+        const DELTA_T: f32 = TASK_INTERVAL_MICROSECONDS as f32 * 0.000_001;
 
         let dynamic_idle_controller_config = DynamicIdleControllerConfig::default();
         let mut dynamic_idle_controller = DynamicIdleController::new(TASK_INTERVAL_MICROSECONDS);
@@ -170,7 +180,6 @@ mod tests {
         assert_eq!(0, dynamic_idle_controller.config().dyn_idle_min_rpm_d100);
 
         assert_eq!(0.0, dynamic_idle_controller.calculate_speed_increase(0.0, DELTA_T));
-        const SLOWEST_MOTOR_HZ: f32 = 960.0 / 60.0; // 960 RPM = 16 Hz
         assert_eq!(960.0, SLOWEST_MOTOR_HZ.to_rpm());
         assert_eq!(SLOWEST_MOTOR_HZ, 960.0.to_hz());
         assert_eq!(0.0, dynamic_idle_controller.calculate_speed_increase(SLOWEST_MOTOR_HZ, DELTA_T));
@@ -188,7 +197,8 @@ mod tests {
         };
         let mut dynamic_idle_controller = DynamicIdleController::new(TASK_INTERVAL_MICROSECONDS);
         dynamic_idle_controller.set_config(dynamic_idle_controller_config);
-        let delta_t = TASK_INTERVAL_MICROSECONDS as f32 * 0.000001;
+        #[allow(clippy::cast_precision_loss)]
+        let delta_t = TASK_INTERVAL_MICROSECONDS as f32 * 0.000_001;
 
         assert_eq!(12, dynamic_idle_controller.config().dyn_idle_min_rpm_d100);
         assert_eq!(20.0, 1200.0.to_hz());
@@ -203,10 +213,11 @@ mod tests {
         assert_eq!(0.075, dynamic_idle_controller.calculate_speed_increase(600.0.to_hz(), delta_t));
 
         // half the speed difference from 1200, so half the output, since PID is P-Term only
-        assert_f32_near!(0.0375, dynamic_idle_controller.calculate_speed_increase(900.0.to_hz(), delta_t));
-        assert_f32_near!(0.0375, dynamic_idle_controller.calculate_speed_increase(900.0.to_hz(), delta_t));
+        assert_near!(0.0375, dynamic_idle_controller.calculate_speed_increase(900.0.to_hz(), delta_t));
+        assert_near!(0.0375, dynamic_idle_controller.calculate_speed_increase(900.0.to_hz(), delta_t));
     }
     #[test]
+    #[allow(clippy::field_reassign_with_default)]
     fn config() {
         use postcard::{from_bytes, to_slice};
 
@@ -214,10 +225,12 @@ mod tests {
         config.dyn_idle_d_gain_x100 = 119;
 
         let mut buf = [0u8; 64]; // Size based on your config size
+        #[allow(clippy::unwrap_used)]
         let data = to_slice(&config, &mut buf).unwrap();
         assert_eq!(5, data.len());
 
         // Deserialize using postcard
+        #[allow(clippy::needless_borrow)]
         let config_read: DynamicIdleControllerConfig =
             from_bytes(&data).unwrap_or_else(|_| DynamicIdleControllerConfig::default());
         assert_eq!(119, config_read.dyn_idle_d_gain_x100);

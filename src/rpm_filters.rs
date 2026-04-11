@@ -80,7 +80,7 @@ pub struct RpmFilterBankContext {
     pub weights: [f32; RPM_FILTER_HARMONICS_COUNT],
 }
 
-/// Bank of RpmFilters, one for each motor.
+/// Bank of `RpmFilters`, one for each motor.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RpmFilterBank {
     config: RpmFilterBankConfig,
@@ -113,19 +113,20 @@ impl RpmFilterBank {
     pub fn set_config(&mut self, config: RpmFilterBankConfig) {
         self.config = config;
 
-        self.q = config.rpm_filter_q_x100 as f32 * 0.01;
+        self.q = f32::from(config.rpm_filter_q_x100) * 0.01;
 
         self.state = State::Stopped;
         // just under  Nyquist frequency (ie just under half sampling rate)
         // for 8kHz loop this is 3840Hz
-        self.frequencies.max_hz = 480000.0 / self.looptime_seconds;
+        self.frequencies.max_hz = 480_000.0 / self.looptime_seconds;
 
         // pre-calculate frequencies for speed in iteration steps
         self.frequencies.half_of_max_hz = self.frequencies.max_hz / 2.0;
         self.frequencies.third_of_max_hz = self.frequencies.max_hz / 3.0;
-        self.frequencies.min_hz = config.rpm_filter_min_hz as f32;
-        self.frequencies.fade_range_hz = config.rpm_filter_fade_range_hz as f32;
+        self.frequencies.min_hz = f32::from(config.rpm_filter_min_hz);
+        self.frequencies.fade_range_hz = f32::from(config.rpm_filter_fade_range_hz);
 
+        #[allow(clippy::cast_precision_loss)]
         for harmonic in 0..config.rpm_filter_harmonics as usize {
             for motor in 0..config.motor_count as usize {
                 self.ctx.notch_filters[motor][harmonic].init_notch(
@@ -142,13 +143,13 @@ impl RpmFilterBank {
             }
         } else {
             for mut rpm_filter in self.ctx.motor_rpm_filters {
-                rpm_filter.set_cutoff_frequency_and_reset(config.rpm_filter_lpf_hz as f32, self.looptime_seconds);
+                rpm_filter.set_cutoff_frequency_and_reset(f32::from(config.rpm_filter_lpf_hz), self.looptime_seconds);
             }
         }
     }
 
     /// Start the filter state machine
-    /// This is called from MotorMixer::output_to_motors and so needs to be FAST.
+    /// This is called from `MotorMixer::output_to_motors` and so needs to be FAST.
     pub fn start_updating_filter_coefficients(&mut self, motor_frequencies_hz: MotorFrequencies) {
         if self.config.rpm_filter_lpf_hz == 0 {
             return;
@@ -172,10 +173,10 @@ impl RpmFilterBank {
 
         if ctx.weights[SECOND_HARMONIC] != 0.0 {
             ret = ctx.notch_filters[motor_index][SECOND_HARMONIC].update_notch_weighted(ret);
-        };
+        }
         if ctx.weights[THIRD_HARMONIC] != 0.0 {
             ret = ctx.notch_filters[motor_index][THIRD_HARMONIC].update_notch_weighted(ret);
-        };
+        }
         ret
     }
 }
