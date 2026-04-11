@@ -84,7 +84,7 @@ approx = { version = "0.5", default-features = false }
 # see https://doc.rust-lang.org/cargo/reference/profiles.html
 [profile.dev]
 opt-level = 0
-debug = true
+debug = "line-tables-only"
 #split-debuginfo = '...'  # Platform-specific.
 strip = "none"
 debug-assertions = true
@@ -94,6 +94,13 @@ panic = 'unwind'
 incremental = true
 codegen-units = 256
 rpath = false
+
+[profile.dev.package."*"]
+debug = false
+
+[profile.debugging]
+inherits = "dev"
+debug = true
 
 [profile.release]
 opt-level = 3
