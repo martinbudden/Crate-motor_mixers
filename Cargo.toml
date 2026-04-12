@@ -52,7 +52,7 @@ rustdoc-args = ["--html-in-header", "katex-header.html"]
 
 
 [build-dependencies]
-rustc_version = "0.4"
+rustc_version = "0.4.1"
 
 [dependencies]
 vqm = { version = "0.1.0", default-features = false }
