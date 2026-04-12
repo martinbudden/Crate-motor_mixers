@@ -1,4 +1,4 @@
-//! Mixer calculations
+//! Mixer calculations.
 //!
 //! Note mixer calculations are traditionally done using a "mix" matrix.
 //! This, however, is problematic: if a manoeuver causes the output
@@ -13,7 +13,7 @@
 
 use crate::{MotorMixerCommands, MotorMixerParameters};
 #[allow(unused)]
-use vector_quaternion_matrix::TrigonometricMethods;
+use vqm::TrigonometricMethods;
 
 pub fn mix_wing(commands: MotorMixerCommands) -> [f32; 3] {
     let outputs: [f32; 3] = [
@@ -45,7 +45,7 @@ pub fn mix_bicopter(commands: MotorMixerCommands) -> [f32; 4] {
     outputs
 }
 
-/// Motor numbering is the same as Betaflight
+/// Motor numbering is the same as Betaflight.
 ///
 /// ```text
 /// CW = clockwise
@@ -387,7 +387,8 @@ mod tests {
 
     use super::*;
 
-    fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
+    #[allow(unused)]
+    fn is_normal<T: Sized + Send + Sync + Unpin>() {}
     fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
 
     #[test]

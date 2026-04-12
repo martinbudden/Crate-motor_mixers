@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-pub use filters::{Pt1Filterf32, SignalFilter};
-pub use pid_controller::PidController;
+pub use pidsk_controller::PidController;
+pub use signal_filters::{Pt1Filterf32, SignalFilter};
 
 pub trait RpmHz: Sized {
     fn to_hz(self) -> Self;
@@ -44,7 +44,7 @@ impl Default for DynamicIdleControllerConfig {
     }
 }
 
-/// Dynamic Idle: use PID controller to boost motor speeds so that slowest motor does not go below minimum allowed RPM
+/// Dynamic Idle: use PID controller to boost motor speeds so that slowest motor does not go below minimum allowed RPM.
 ///
 /// A minimum RPM is required because the ESC will desynchronize if the motors turn too slowly (since they won't generate
 /// enough back EMF for the ESC know the position of the rotor relative to the windings).
@@ -154,7 +154,8 @@ mod tests {
         };
     }
 
-    fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
+    #[allow(unused)]
+    fn is_normal<T: Sized + Send + Sync + Unpin>() {}
     fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
     fn is_config<
         T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq + Serialize + for<'a> Deserialize<'a>,

@@ -1,4 +1,4 @@
-/// Dshot Encoder/Decoder
+/// Dshot Encoder/Decoder.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct DshotCodec;
 
@@ -39,12 +39,12 @@ impl DshotCodec {
     pub const TELEMETRY_TYPE_COUNT: u16 = 8;
     pub const TELEMETRY_INVALID: u16 = 0xFFFF;
 
-    /// Convert PWM (1000-2000) to Dshot value
+    /// Convert PWM (1000-2000) to Dshot value.
     pub fn pwm_to_dshot(value: u16) -> u16 {
         ((value - 1000) * 2) + 47
     }
 
-    /// Convert PWM to Dshot with clipping
+    /// Convert PWM to Dshot with clipping.
     pub fn pwm_to_dshot_clamped(value: u16) -> u16 {
         if value > 2000 {
             Self::pwm_to_dshot(2000)
@@ -55,33 +55,33 @@ impl DshotCodec {
         }
     }
 
-    /// Unidirectional (non-inverted) checksum
+    /// Unidirectional (non-inverted) checksum.
     pub fn checksum_unidirectional(value: u16) -> u16 {
         (value ^ (value >> 4) ^ (value >> 8)) & 0x0F
     }
 
-    /// Check if unidirectional checksum is valid
+    /// Check if unidirectional checksum is valid.
     pub fn checksum_unidirectional_is_ok(value: u16) -> bool {
         Self::checksum_unidirectional(value >> 4) == (value & 0x0F)
     }
 
-    /// Bidirectional (inverted) checksum
+    /// Bidirectional (inverted) checksum.
     pub fn checksum_bidirectional(value: u16) -> u16 {
         (!(value ^ (value >> 4) ^ (value >> 8))) & 0x0F
     }
 
-    /// Check if bidirectional checksum is valid
+    /// Check if bidirectional checksum is valid.
     pub fn checksum_bidirectional_is_ok(value: u16) -> bool {
         Self::checksum_bidirectional(value >> 4) == (value & 0x0F)
     }
 
-    /// Create unidirectional Dshot frame
+    /// Create unidirectional Dshot frame.
     pub fn frame_unidirectional(value: u16) -> u16 {
         let value = value << 1;
         (value << 4) | Self::checksum_unidirectional(value)
     }
 
-    /// Create bidirectional Dshot frame
+    /// Create bidirectional Dshot frame.
     pub fn frame_bidirectional(value: u16) -> u16 {
         let value = value << 1;
         (value << 4) | Self::checksum_bidirectional(value)
@@ -98,7 +98,7 @@ impl DshotCodec {
     pub const NIBBLE_TO_QUINTET: [u8; 16] =
         [0x19, 0x1B, 0x12, 0x13, 0x1D, 0x15, 0x16, 0x17, 0x1A, 0x09, 0x0A, 0x0B, 0x1E, 0x0D, 0x0E, 0x0F];
 
-    /// Decode `erpm`
+    /// Decode `erpm`.
     /// # Errors `TELEMETRY_INVALID`
     pub fn decode_erpm(value: u16) -> Result<u16, u16> {
         let mut value = value;
@@ -259,7 +259,8 @@ mod tests {
 
     use super::*;
 
-    fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
+    #[allow(unused)]
+    fn is_normal<T: Sized + Send + Sync + Unpin>() {}
     fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
 
     #[test]

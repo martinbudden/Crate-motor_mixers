@@ -1,5 +1,5 @@
 use crate::{MixerConfig, MixerType, MotorConfig, MotorFrequencies, MotorMixerCommandsDps, MotorMixerParameters};
-use filters::SlewRateLimiterf32;
+use signal_filters::SlewRateLimiterf32;
 
 pub const MAX_MOTOR_COUNT: usize = 8;
 
@@ -104,7 +104,8 @@ pub trait MotorMixerDriver {
 mod tests {
     use super::*;
 
-    fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
+    #[allow(unused)]
+    fn is_normal<T: Sized + Send + Sync + Unpin>() {}
     fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
 
     #[test]

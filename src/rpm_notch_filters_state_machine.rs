@@ -1,8 +1,8 @@
 use crate::mixer::MAX_MOTOR_COUNT;
 use crate::rpm_notch_filters::{RpmNotchFilterBankConfig, RpmNotchFilterBankContext, RpmNotchFilterFrequencies};
-use filters::SignalFilter;
+use signal_filters::SignalFilter;
 #[allow(unused)]
-use vector_quaternion_matrix::TrigonometricMethods;
+use vqm::TrigonometricMethods;
 
 pub const FUNDAMENTAL: usize = 0;
 pub const SECOND_HARMONIC: usize = 1;
@@ -50,7 +50,7 @@ pub enum State {
 /// For a tri-bladed quadcopter (which will typically filter the fundamental frequency and first harmonic)
 /// 8 iterations of the state machine are required to set all the notch filters.
 impl State {
-    /// External trigger to start the state machine
+    /// External trigger to start the state machine.
     pub fn start(&mut self) {
         // TODO: consider if we want to restart from the beginning if start is called before state machine has stopped
         if let State::Stopped = self {
@@ -193,7 +193,8 @@ impl State {
 mod tests {
     use super::*;
 
-    fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
+    #[allow(unused)]
+    fn is_normal<T: Sized + Send + Sync + Unpin>() {}
     fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
 
     #[test]

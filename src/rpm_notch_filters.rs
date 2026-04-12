@@ -4,10 +4,10 @@ use crate::{
     mixer::MAX_MOTOR_COUNT,
     rpm_notch_filters_state_machine::{FUNDAMENTAL, RpmFilterMotorStates, SECOND_HARMONIC, State, THIRD_HARMONIC},
 };
-use filters::{BiquadFilterVector3df32, Pt1Filterf32};
 use serde::{Deserialize, Serialize};
+use signal_filters::{BiquadFilterVector3df32, Pt1Filterf32};
 
-use vector_quaternion_matrix::Vector3df32;
+use vqm::Vector3df32;
 
 pub const RPM_FILTER_HARMONICS_COUNT: usize = 3;
 pub type MotorFrequencies = [f32; MAX_MOTOR_COUNT];
@@ -163,7 +163,7 @@ impl RpmNotchFilterBank {
         self.state.update(&self.config, self.frequencies, &mut self.ctx);
     }
 
-    /// Apply the notch filters for all selected harmonics for the given motor
+    /// Apply the notch filters for all selected harmonics for the given motor.
     pub fn update(ctx: &mut RpmNotchFilterBankContext, input: Vector3df32, motor_index: usize) -> Vector3df32 {
         let mut ret = ctx.notch_filters[motor_index][FUNDAMENTAL].update_notch_weighted(input);
 
@@ -204,7 +204,8 @@ impl RpmNotchFilters for RpmNotchFilterBank {
 mod tests {
     use super::*;
 
-    fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
+    #[allow(unused)]
+    fn is_normal<T: Sized + Send + Sync + Unpin>() {}
     fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
     fn is_config<
         T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq + Serialize + for<'a> Deserialize<'a>,

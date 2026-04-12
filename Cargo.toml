@@ -5,17 +5,23 @@ edition = "2024"
 authors = ["Martin Budden"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
-
-[package.metadata.docs.rs]
-rustdoc-args = ["--html-in-header", "katex-header.html"]
-
+repository = "https://github.com/martinbudden/crate-motor-mixers"
+description = "A motor mixer library targeted at embedded systems and robotics."
+keywords = ["motor", "mixer", "uav", "drone", "no_std"]
+categories = [
+    "embedded",
+    "mathematics",
+    "no-std::no-alloc",
+    "science::robotics",
+    "aerospace::drones",
+]
 
 [features]
 default = ["libm"]
-std = ["vector-quaternion-matrix/std", "filters/std"]
-libm = ["vector-quaternion-matrix/libm", "filters/libm", "pid-controller/libm"]
-no_align = ["vector-quaternion-matrix/no_align", "filters/no_align"]
-simd = ["vector-quaternion-matrix/simd", "filters/simd"]
+std = ["vqm/std", "signal-filters/std"]
+libm = ["vqm/libm", "signal-filters/libm", "pidsk-controller/libm"]
+no_align = ["vqm/no_align", "signal-filters/no_align"]
+simd = ["vqm/simd", "signal-filters/simd"]
 # cargo build --features rp2040 
 #default = ["rp2040"]
 #default = ["stm32"]
@@ -30,10 +36,28 @@ embassy-stm32 = ["dep:embassy-stm32"]
 LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_ROLL_PITCH = []
 LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_YAW = []
 
+# used by RP2040
+[target.thumbv6m-none-eabi]
+rustflags = ["-C", "target-cpu=cortex-m0plus"]
+
+# used by RP2350
+[target.thumbv8m.main-none-eabihf] # hf = Hard Float
+rustflags = [
+    "-C",
+    "target-cpu=cortex-m33",
+]
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--html-in-header", "katex-header.html"]
+
+
+[build-dependencies]
+rustc_version = "0.4"
+
 [dependencies]
-vector-quaternion-matrix = { git = "https://github.com/martinbudden/crate-vector-quaternion-matrix", default-features = false }
-pid-controller = { git = "https://github.com/martinbudden/crate-pid-controller", default-features = false }
-filters = { git = "https://github.com/martinbudden/crate-filters", default-features = false }
+vqm = { version = "0.1.0", default-features = false }
+pidsk-controller = { version = "0.1.0", default-features = false }
+signal-filters = { version = "0.1.0", default-features = false }
 # Use embedded-hal for I2C/SPI traits
 embedded-hal = "1.0.0"
 # Embedded HAL traits (often re-exported by embassy-rp)
@@ -76,6 +100,7 @@ strum_macros = "0.28.0"
 embedded-storage = "0.3"
 serde = { version = "1.0.228", default-features = false, features = ["derive"] }
 postcard = { version = "1.0", features = ["embedded-io"] }
+num_enum = "0.7.6"
 
 
 [dev-dependencies]
