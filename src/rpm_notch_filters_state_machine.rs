@@ -1,5 +1,5 @@
 use crate::mixer::MAX_MOTOR_COUNT;
-use crate::rpm_filters::{RpmFilterBankConfig, RpmFilterBankContext, RpmFilterFrequencies};
+use crate::rpm_notch_filters::{RpmNotchFilterBankConfig, RpmNotchFilterBankContext, RpmNotchFilterFrequencies};
 use filters::SignalFilter;
 #[allow(unused)]
 use vector_quaternion_matrix::TrigonometricMethods;
@@ -62,9 +62,9 @@ impl State {
     /// This is called from `MotorMixer::rpm_filter_set_frequency_hz_iteration_step` and so needs to be FAST.
     pub fn update(
         &mut self,
-        config: &RpmFilterBankConfig,
-        frequencies: RpmFilterFrequencies,
-        ctx: &mut RpmFilterBankContext,
+        config: &RpmNotchFilterBankConfig,
+        frequencies: RpmNotchFilterFrequencies,
+        ctx: &mut RpmNotchFilterBankContext,
     ) {
         // state machine sets notch filter for one harmonic of one motor on each iteration.
 
@@ -203,7 +203,7 @@ mod tests {
     }
     #[test]
     fn new() {
-        let config = RpmFilterBankConfig::new();
+        let config = RpmNotchFilterBankConfig::new();
         assert_eq!(50, config.rpm_filter_fade_range_hz);
     }
 }

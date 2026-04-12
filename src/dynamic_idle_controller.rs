@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 pub use filters::{Pt1Filterf32, SignalFilter};
-pub use pid_controller::{PidConstants, PidController, PidError};
+pub use pid_controller::PidController;
 
 pub trait RpmHz: Sized {
     fn to_hz(self) -> Self;

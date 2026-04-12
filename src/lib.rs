@@ -10,28 +10,36 @@
 #![allow(clippy::return_self_not_must_use)]
 #![allow(clippy::must_use_candidate)]
 
-pub mod dshot_codec;
-pub mod dynamic_idle_controller;
+mod dshot_codec;
+mod dynamic_idle_controller;
 
-pub mod mixer;
-pub mod mixer_calculations;
-pub mod mixer_config;
-pub mod mixer_quad_x_dshot;
-pub mod mixer_quad_x_pwm;
-pub mod mixer_quad_x_pwm_drivers;
+mod mixer;
+mod mixer_calculations;
+mod mixer_config;
+mod mixer_quad_x_dshot;
+mod mixer_quad_x_pwm;
+mod mixer_quad_x_pwm_drivers;
 
-pub mod rpm_filters;
-mod rpm_filters_state_machine;
+mod rpm_notch_filters;
+mod rpm_notch_filters_state_machine;
 
 pub use mixer::{MotorMixer, MotorMixerCommon, MotorMixerDriver};
 
 pub use mixer_config::{
     MixerConfig, MixerType, MotorConfig, MotorDeviceConfig, MotorMixerCommands, MotorMixerCommandsDps,
-    MotorMixerParameters, ServoConfig, ServoDeviceConfig,
+    MotorMixerParameters, MotorProtocol, ProtocolFamily, ServoConfig, ServoDeviceConfig,
 };
 
 pub use mixer_calculations::{mix_airplane, mix_bicopter, mix_hex_x, mix_quad_x, mix_tricopter, mix_wing};
 
 pub use mixer_quad_x_pwm::MotorMixerQuadXPwm;
 
-pub use rpm_filters::{MotorFrequencies, RpmFilterBank, RpmFilterBankConfig, RpmFilters};
+pub use mixer_quad_x_dshot::MotorMixerQuadXDshot;
+
+pub use rpm_notch_filters::{
+    MotorFrequencies, RpmNotchFilterBank, RpmNotchFilterBankConfig, RpmNotchFilterFrequencies, RpmNotchFilters,
+};
+
+pub use dynamic_idle_controller::{DynamicIdleController, DynamicIdleControllerConfig, RpmHz};
+
+pub use dshot_codec::DshotCodec;

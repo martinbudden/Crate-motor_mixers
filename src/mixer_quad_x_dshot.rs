@@ -1,7 +1,7 @@
 use crate::mixer::MotorOutputs;
 use crate::{
     MotorFrequencies, MotorMixer, MotorMixerCommands, MotorMixerCommandsDps, MotorMixerCommon, MotorMixerDriver,
-    MotorMixerParameters, RpmFilterBank, RpmFilterBankConfig, mix_quad_x,
+    MotorMixerParameters, RpmNotchFilterBank, RpmNotchFilterBankConfig, mix_quad_x,
 };
 
 impl MotorMixerDriver for MotorMixerQuadXDshot {
@@ -17,8 +17,8 @@ impl MotorMixerDriver for MotorMixerQuadXDshot {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MotorMixerQuadXDshot {
     common: MotorMixerCommon,
-    config: RpmFilterBankConfig,
-    rpm_filters: RpmFilterBank,
+    config: RpmNotchFilterBankConfig,
+    rpm_notch_filters: RpmNotchFilterBank,
     motor_frequencies_hz: MotorFrequencies,
     rpm_filter_iteration_count: usize,
 }
@@ -30,13 +30,13 @@ impl Default for MotorMixerQuadXDshot {
 }
 
 impl MotorMixerQuadXDshot {
-    const MOTOR_COUNT: usize = 4;
+    pub const MOTOR_COUNT: usize = 4;
 
     pub fn new() -> Self {
         Self {
             common: MotorMixerCommon::default(),
-            config: RpmFilterBankConfig::default(),
-            rpm_filters: RpmFilterBank::default(),
+            config: RpmNotchFilterBankConfig::default(),
+            rpm_notch_filters: RpmNotchFilterBank::default(),
             motor_frequencies_hz: MotorFrequencies::default(),
             rpm_filter_iteration_count: 0,
         }
@@ -65,7 +65,7 @@ impl MotorMixer for MotorMixerQuadXDshot {
         // TODO: read the motor frequencies from the Dshot driver.
         // We retain the values, so they can be displayed on an OSD or recorded in blackbox, if required.
         self.motor_frequencies_hz = self.read_motor_frequencies_hz();
-        self.rpm_filters.start_updating_filter_coefficients(self.motor_frequencies_hz);
+        self.rpm_notch_filters.start_updating_filter_frequencies(self.motor_frequencies_hz);
 
         if self.output_this_cycle() {
             const MIXER_OUTPUT_SCALE_FACTOR: f32 = 1000.0;
@@ -91,7 +91,7 @@ impl MotorMixer for MotorMixerQuadXDshot {
         let iteration_count =
             (self.config.rpm_filter_harmonics as usize * Self::MOTOR_COUNT).div_ceil(self.output_denominator());
         for _ in 0..iteration_count {
-            self.rpm_filters.update_filter_coefficients_step();
+            self.rpm_notch_filters.update_filter_frequencies_step();
         }
     }
 }
