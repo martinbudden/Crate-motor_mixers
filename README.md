@@ -6,8 +6,8 @@
 
 ## Original implementation
 
-This crate was originally implemented as a C++ library. The
-[original implementation can be found here](https://github.com/martinbudden/Library-MotorMixers).
+I originally implemented this crate as a C++ library:
+[Library-MotorMixers](https://github.com/martinbudden/Library-MotorMixers).
 
 ## License
 
