@@ -1,6 +1,6 @@
 use crate::mixer::MotorOutputs;
 use crate::{
-    MotorFrequencies, MotorMixer, MotorMixerCommands, MotorMixerCommandsDps, MotorMixerCommon, MotorMixerDriver,
+    MotorFrequencies, MotorMixer, MotorMixerOutput, MotorMixerCommands, MotorMixerCommandsDps, MotorMixerCommon, MotorMixerDriver,
     MotorMixerParameters, RpmNotchFilterBank, RpmNotchFilterBankConfig, mix_quad_x,
 };
 
@@ -43,20 +43,14 @@ impl MotorMixerQuadXDshot {
     }
 }
 
-impl MotorMixer for MotorMixerQuadXDshot {
-    fn common(&self) -> &MotorMixerCommon {
-        &self.common
-    }
-    fn common_mut(&mut self) -> &mut MotorMixerCommon {
-        &mut self.common
-    }
+impl MotorMixerOutput for MotorMixerQuadXDshot {
 
     // Calculate and output motor mix.
     // Called by the scheduler when the updateOutputsUsingPIDs function running in the AHRS task SIGNALs that output data is available.
     // It is typically called at frequency of between 1000Hz and 8000Hz, so it has to be FAST.
     fn output_to_motors(&mut self, commands_dps: MotorMixerCommandsDps) {
         // ALWAYS write 0.0 to the motors if they are not switched on, as a safety precaution
-        if !self.motors_is_on() || !self.motors_is_armed() {
+        if !self.common.motors_is_on() || !self.common.motors_is_armed() {
             self.common.outputs = MotorOutputs::default();
             self.write_to_motors(self.common.outputs);
             return;
@@ -67,7 +61,7 @@ impl MotorMixer for MotorMixerQuadXDshot {
         self.motor_frequencies_hz = self.read_motor_frequencies_hz();
         self.rpm_notch_filters.start_updating_filter_frequencies(self.motor_frequencies_hz);
 
-        if self.output_this_cycle() {
+        if self.common.output_this_cycle() {
             const MIXER_OUTPUT_SCALE_FACTOR: f32 = 1000.0;
             let mut mix_params = MotorMixerParameters::default();
             let commands = MotorMixerCommands {
@@ -78,7 +72,7 @@ impl MotorMixer for MotorMixerQuadXDshot {
                 yaw: commands_dps.yaw_dps * MIXER_OUTPUT_SCALE_FACTOR,
             };
             self.common.outputs[..Self::MOTOR_COUNT].copy_from_slice(&mix_quad_x(commands, &mut mix_params));
-            self.set_throttle_command(mix_params.throttle);
+            self.common.set_throttle_command(mix_params.throttle);
 
             self.write_to_motors(self.common.outputs);
         }
@@ -89,7 +83,7 @@ impl MotorMixer for MotorMixerQuadXDshot {
         // If output denominator is 3, then we need to do 3 iterations.
         // TODO: move the calculation of iteration_count into set_config.
         let iteration_count =
-            (self.config.rpm_filter_harmonics as usize * Self::MOTOR_COUNT).div_ceil(self.output_denominator());
+            (self.config.rpm_filter_harmonics as usize * Self::MOTOR_COUNT).div_ceil(self.common.output_denominator());
         for _ in 0..iteration_count {
             self.rpm_notch_filters.update_filter_frequencies_step();
         }

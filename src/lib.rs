@@ -14,6 +14,7 @@
 mod dshot_codec;
 mod dynamic_idle_controller;
 
+mod commands;
 mod mixer;
 mod mixer_calculations;
 mod mixer_config;
@@ -24,11 +25,13 @@ mod mixer_quad_x_pwm_drivers;
 mod rpm_notch_filters;
 mod rpm_notch_filters_state_machine;
 
-pub use mixer::{MotorMixer, MotorMixerCommon, MotorMixerDriver};
+pub use mixer::{MotorMixer, MotorMixerOutput, MotorMixerCommon, MotorMixerDriver};
+
+pub use commands::{MotorMixerCommands, MotorMixerCommandsDps};
 
 pub use mixer_config::{
-    MixerConfig, MixerType, MotorConfig, MotorDeviceConfig, MotorMixerCommands, MotorMixerCommandsDps,
-    MotorMixerParameters, MotorProtocol, ProtocolFamily, ServoConfig, ServoDeviceConfig,
+    MixerConfig, MixerType, MotorConfig, MotorDeviceConfig, MotorMixerParameters, MotorProtocol, ProtocolFamily,
+    ServoConfig, ServoDeviceConfig,
 };
 
 pub use mixer_calculations::{mix_airplane, mix_bicopter, mix_hex_x, mix_quad_x, mix_tricopter, mix_wing};

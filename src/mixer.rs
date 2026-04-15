@@ -46,11 +46,13 @@ impl Default for MotorMixerCommon {
     }
 }
 
+pub trait MotorMixerOutput {
+    fn output_to_motors(&mut self, commands_dps: MotorMixerCommandsDps);
+}
+
 pub trait MotorMixer {
     fn common(&self) -> &MotorMixerCommon;
     fn common_mut(&mut self) -> &mut MotorMixerCommon;
-
-    fn output_to_motors(&mut self, commands_dps: MotorMixerCommandsDps);
 
     fn output_denominator(&self) -> usize {
         self.common().output_denominator as usize
@@ -95,6 +97,14 @@ pub trait MotorMixer {
     }
 }
 
+impl MotorMixer for MotorMixerCommon {
+    fn common(&self) -> &MotorMixerCommon {
+        self
+    }
+    fn common_mut(&mut self) -> &mut MotorMixerCommon {
+        self
+    }
+}
 pub trait MotorMixerDriver {
     fn write_to_motors(&mut self, motor_outputs: MotorOutputs);
     fn read_motor_frequencies_hz(&mut self) -> MotorFrequencies;

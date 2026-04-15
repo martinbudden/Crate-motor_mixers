@@ -1,25 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, PartialEq, Default)]
-pub struct MotorMixerCommands {
-    // throttle commands are in the range [0.0, 1.0]
-    pub throttle: f32,
-    // roll, pitch, and yaw commands are in the range [-1.0, 1.0]
-    pub roll: f32,
-    pub pitch: f32,
-    pub yaw: f32,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Default)]
-pub struct MotorMixerCommandsDps {
-    // throttle commands are in the range [0.0, 1.0]
-    pub throttle: f32,
-    // roll, pitch, and yaw commands are in the degrees per second range ie approx [-1000.0, 1000.0]
-    pub roll_dps: f32,
-    pub pitch_dps: f32,
-    pub yaw_dps: f32,
-}
-
 // parameters to mix function
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MotorMixerParameters {
@@ -243,8 +223,6 @@ mod tests {
 
     #[test]
     fn normal_types() {
-        is_full::<MotorMixerCommands>();
-        is_full::<MotorMixerCommandsDps>();
         is_full::<MotorMixerParameters>();
         is_config::<MixerConfig>();
         is_config::<MotorDeviceConfig>();

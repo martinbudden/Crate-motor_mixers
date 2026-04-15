@@ -1,5 +1,5 @@
 use crate::{
-    MotorFrequencies, MotorMixer, MotorMixerCommands, MotorMixerCommandsDps, MotorMixerCommon, MotorMixerDriver,
+    MotorFrequencies, MotorMixer, MotorMixerOutput, MotorMixerCommands, MotorMixerCommandsDps, MotorMixerCommon, MotorMixerDriver,
     MotorMixerParameters, mix_quad_x, mixer::MotorOutputs,
 };
 
@@ -36,25 +36,19 @@ impl MotorMixerQuadXPwm {
     }
 }
 
-impl MotorMixer for MotorMixerQuadXPwm {
-    fn common(&self) -> &MotorMixerCommon {
-        &self.common
-    }
-    fn common_mut(&mut self) -> &mut MotorMixerCommon {
-        &mut self.common
-    }
+impl MotorMixerOutput for MotorMixerQuadXPwm {
 
     // Calculate and output motor mix.
     // Called by the scheduler when the updateOutputsUsingPIDs function running in the AHRS task SIGNALs that output data is available.
     // It is typically called at frequency of between 1000Hz and 8000Hz, so it has to be FAST.
     fn output_to_motors(&mut self, commands_dps: MotorMixerCommandsDps) {
         // ALWAYS write 0.0 to the motors if they are not switched on, as a safety precaution
-        if !self.motors_is_on() || !self.motors_is_armed() {
+        if !self.common.motors_is_on() || !self.common.motors_is_armed() {
             self.common.outputs = MotorOutputs::default();
             self.write_to_motors(self.common.outputs);
             return;
         }
-        if self.output_this_cycle() {
+        if self.common.output_this_cycle() {
             const MIXER_OUTPUT_SCALE_FACTOR: f32 = 1000.0;
             let mut mix_params = MotorMixerParameters::default();
             let commands = MotorMixerCommands {
@@ -64,7 +58,7 @@ impl MotorMixer for MotorMixerQuadXPwm {
                 pitch: commands_dps.pitch_dps * MIXER_OUTPUT_SCALE_FACTOR,
                 yaw: commands_dps.yaw_dps * MIXER_OUTPUT_SCALE_FACTOR,
             };
-            self.set_throttle_command(mix_params.throttle);
+            self.common.set_throttle_command(mix_params.throttle);
 
             self.common.outputs[..Self::MOTOR_COUNT].copy_from_slice(&mix_quad_x(commands, &mut mix_params));
             for ii in 0..Self::MOTOR_COUNT {
