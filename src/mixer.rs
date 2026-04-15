@@ -5,6 +5,7 @@ pub const MAX_MOTOR_COUNT: usize = 8;
 
 pub type MotorOutputs = [f32; MAX_MOTOR_COUNT];
 pub type MotorOutputFilters = [SlewRateLimiterf32; MAX_MOTOR_COUNT];
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MotorMixerCommon {
     pub outputs: MotorOutputs,
