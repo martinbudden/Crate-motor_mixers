@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub use pidsk_controller::PidController;
+pub use pidsk_controller::{PidController, Pidf32};
 pub use signal_filters::{Pt1Filterf32, SignalFilter};
 
 pub trait RpmHz: Sized {
@@ -61,7 +61,7 @@ pub struct DynamicIdleController {
     minimum_allowed_motor_hz: f32, // minimum motor Hz, dynamically controlled
     max_increase: f32,
     // dynamic_idle_max_increase_delay_k :f32,
-    pid: PidController<f32>, // PID to dynamic idle, ie to ensure slowest motor does not go below min RPS
+    pid: Pidf32, // PID to dynamic idle, ie to ensure slowest motor does not go below min RPS
     dterm_filter: Pt1Filterf32,
     config: DynamicIdleControllerConfig,
 }
@@ -79,7 +79,7 @@ impl DynamicIdleController {
             minimum_allowed_motor_hz: 0.0, // minimum motor Hz, dynamically controlled
             max_increase: 0.0,
             // dynamic_idle_max_increase_delay_k :f32,
-            pid: PidController::new(1.0, 0.0, 0.0), // PID to dynamic idle, ie to ensure slowest motor does not go below min RPS
+            pid: Pidf32::new(1.0, 0.0, 0.0), // PID to dynamic idle, ie to ensure slowest motor does not go below min RPS
             dterm_filter: Pt1Filterf32::default(),
             config: DynamicIdleControllerConfig::default(),
         }
@@ -231,9 +231,8 @@ mod tests {
         assert_eq!(5, data.len());
 
         // Deserialize using postcard
-        #[allow(clippy::needless_borrow)]
         let config_read: DynamicIdleControllerConfig =
-            from_bytes(&data).unwrap_or_else(|_| DynamicIdleControllerConfig::default());
+            from_bytes(data).unwrap_or_else(|_| DynamicIdleControllerConfig::default());
         assert_eq!(119, config_read.dyn_idle_d_gain_x100);
     }
 }

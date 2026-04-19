@@ -25,7 +25,7 @@ mod mixer_quad_x_pwm_drivers;
 mod rpm_notch_filters;
 mod rpm_notch_filters_state_machine;
 
-pub use mixer::{MotorMixer, MotorMixerOutput, MotorMixerCommon, MotorMixerDriver};
+pub use mixer::{MotorMixer, MotorMixerCommon, MotorMixerDriver, MotorMixerOutput};
 
 pub use commands::{MotorMixerCommands, MotorMixerCommandsDps};
 

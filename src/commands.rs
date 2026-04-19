@@ -28,7 +28,7 @@ pub struct MotorMixerCommandsDps {
     pub roll_dps: f32,
     pub pitch_dps: f32,
     pub yaw_dps: f32,
-    // throttle commands are in the range [0.0, 1.0]
+    // throttle commands are in the range [-1.0, 1.0]
     pub throttle: f32,
 }
 

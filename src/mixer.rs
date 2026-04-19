@@ -125,7 +125,7 @@ mod tests {
     }
     #[test]
     fn new() {
-        let state = MotorMixerCommon::new();
-        assert_eq!(3, state.mixer_type);
+        let mixer = MotorMixerCommon::new();
+        assert_eq!(MixerType::QuadX as u8, mixer.mixer_type);
     }
 }
