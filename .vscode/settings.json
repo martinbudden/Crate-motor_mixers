@@ -70,6 +70,7 @@
         "itertools",
         "itoa",
         "katex",
+        "konst",
         "lalrpop",
         "ledc",
         "libc",

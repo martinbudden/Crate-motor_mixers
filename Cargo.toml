@@ -55,13 +55,13 @@ rustdoc-args = ["--html-in-header", "katex-header.html"]
 rustc_version = "0.4.1"
 
 [dependencies]
-#vqm = { version = "0.1.0", default-features = false }
-#pidsk-controller = { version = "0.1.0", default-features = false }
+vqm = { version = "0.1.1", default-features = false }
+#vqm = { git = "https://github.com/martinbudden/crate-vector-quaternion-matrix" }
+#vqm = { path = "../vector-quaternion-matrix" }
 #signal-filters = { version = "0.1.0", default-features = false }
-#vqm = {  path = "../vector-quaternion-matrix"}
-vqm = { git = "https://github.com/martinbudden/crate-vector-quaternion-matrix" }
-signal-filters = {  path = "../signal-filters"}
-pidsk-controller = { path = "../pid-controller"  }
+signal-filters = { path = "../signal-filters" }
+#pidsk-controller = { version = "0.1.0", default-features = false }
+pidsk-controller = { path = "../pid-controller" }
 # Use embedded-hal for I2C/SPI traits
 embedded-hal = "1.0.0"
 # Embedded HAL traits (often re-exported by embassy-rp)
