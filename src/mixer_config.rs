@@ -82,6 +82,7 @@ impl Default for MixerConfig {
     }
 }
 
+/// PWM (analog) or Dshot (digital).
 #[repr(u8)]
 pub enum ProtocolFamily {
     Unknown = 0,
@@ -89,6 +90,7 @@ pub enum ProtocolFamily {
     Dshot = 2,
 }
 
+/// Motor protocol.
 #[repr(u8)]
 pub enum MotorProtocol {
     Pwm = 0,

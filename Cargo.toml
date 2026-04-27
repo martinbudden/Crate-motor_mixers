@@ -33,8 +33,8 @@ embassy-rp = ["dep:embassy-rp"]
 embassy-stm32 = ["dep:embassy-stm32"]
 #esp32 = ["esp-idf-hal", "esp-hal-embassy", "esp-backtrace", "esp-println"]
 # NOTE: feature names taken directly from c++ library #defines, need to ascertain the Rust naming convention
-LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_ROLL_PITCH = []
-LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_YAW = []
+#LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_ROLL_PITCH = []
+#LIBRARY_MOTOR_MIXERS_USE_NO_OVERFLOW_CHECKING_YAW = []
 
 # used by RP2040
 [target.thumbv6m-none-eabi]
@@ -58,14 +58,14 @@ rustc_version = "0.4.1"
 vqm = { version = "0.1.1", default-features = false }
 #vqm = { git = "https://github.com/martinbudden/crate-vector-quaternion-matrix" }
 #vqm = { path = "../vector-quaternion-matrix" }
-#signal-filters = { version = "0.1.0", default-features = false }
-signal-filters = { path = "../signal-filters" }
-#pidsk-controller = { version = "0.1.0", default-features = false }
-pidsk-controller = { path = "../pid-controller" }
+signal-filters = { version = "0.1.1", default-features = false }
+#signal-filters = { path = "../signal-filters" }
+pidsk-controller = { version = "0.1.1", default-features = false }
+#pidsk-controller = { path = "../pid-controller" }
 # Use embedded-hal for I2C/SPI traits
-embedded-hal = "1.0.0"
+#embedded-hal = "1.0.0"
 # Embedded HAL traits (often re-exported by embassy-rp)
-embedded-hal-async = "1.0.0"
+#embedded-hal-async = "1.0.0"
 # Example: Add a specific sensor driver if needed
 # mpu9250 = "0.25.0"
 # bmi160 = "0.3.0"
@@ -74,9 +74,9 @@ embedded-hal-async = "1.0.0"
 
 
 # Core Embassy executor and concurrency primitives
-embassy-executor = { version = "0.10", features = ["executor-thread"] }
-embassy-sync = "0.8.0"
-embassy-time = "0.5.1"
+#embassy-executor = { version = "0.10", features = ["executor-thread"] }
+#embassy-sync = "0.8.0"
+#embassy-time = "0.5.1"
 
 # Hardware-specific Embassy HAL (example for Raspberry Pi RP2040)
 embassy-rp = { version = "0.10.0", optional = true, features = ["rp2040", "time-driver", "rt"] }   
@@ -93,22 +93,22 @@ defmt = "1.0.1"
 defmt-rtt = "1.1.0"
 # ESP32 logging
 # esp-println = { version = "0.16.1", optional = true, features = ["log"] }
-log = "0.4"
+log = "0.4.29"
 
-cfg-if = "1.0"   
+cfg-if = "1.0.4"   
 
 strum = "0.28.0"
 strum_macros = "0.28.0"
 
 # For easy flash access on the RP2040
-embedded-storage = "0.3"
+#embedded-storage = "0.3.1"
 serde = { version = "1.0.228", default-features = false, features = ["derive"] }
-postcard = { version = "1.0", features = ["embedded-io"] }
+postcard = { version = "1.1.3", features = ["embedded-io"] }
 num_enum = "0.7.6"
 
 
 [dev-dependencies]
-approx = { version = "0.5", default-features = false }
+approx = { version = "0.5.1", default-features = false }
 
 # see https://doc.rust-lang.org/cargo/reference/profiles.html
 [profile.dev]

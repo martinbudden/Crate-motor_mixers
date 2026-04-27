@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 pub use pidsk_controller::{PidController, Pidf32};
 pub use signal_filters::{Pt1Filterf32, SignalFilter};
 
+/// Conversion between RPM and Hz.
 pub trait RpmHz: Sized {
     fn to_hz(self) -> Self;
     fn to_rpm(self) -> Self;
@@ -44,7 +45,7 @@ impl Default for DynamicIdleControllerConfig {
     }
 }
 
-/// Dynamic Idle: use PID controller to boost motor speeds so that slowest motor does not go below minimum allowed RPM.
+/// PID controller to boost motor speeds so that slowest motor does not go below minimum allowed RPM.
 ///
 /// A minimum RPM is required because the ESC will desynchronize if the motors turn too slowly (since they won't generate
 /// enough back EMF for the ESC know the position of the rotor relative to the windings).

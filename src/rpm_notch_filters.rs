@@ -10,6 +10,7 @@ use signal_filters::{BiquadFilterVector3df32, Pt1Filterf32};
 use vqm::Vector3df32;
 
 pub const RPM_FILTER_HARMONICS_COUNT: usize = 3;
+/// Array of motor rotation frequencies, one for each motor.
 pub type MotorFrequencies = [f32; MAX_MOTOR_COUNT];
 
 #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]

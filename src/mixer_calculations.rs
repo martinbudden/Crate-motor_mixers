@@ -15,6 +15,7 @@ use crate::{MotorMixerCommands, MotorMixerParameters};
 #[allow(unused)]
 use vqm::TrigonometricMethods;
 
+/// Mixer for flying wing (ie throttle and flaperons).
 pub fn mix_wing(commands: MotorMixerCommands) -> [f32; 3] {
     let outputs: [f32; 3] = [
         commands.throttle, // throttle may be controlled by a servo for a wing with an internal combustion engine
@@ -24,6 +25,7 @@ pub fn mix_wing(commands: MotorMixerCommands) -> [f32; 3] {
     outputs
 }
 
+/// Mixer for airplane (ie throttle, ailerons, elevator, and rudder).
 pub fn mix_airplane(commands: MotorMixerCommands) -> [f32; 5] {
     let outputs: [f32; 5] = [
         commands.throttle, // throttle may be controlled by a servo for a wing with an internal combustion engine
@@ -35,6 +37,7 @@ pub fn mix_airplane(commands: MotorMixerCommands) -> [f32; 5] {
     outputs
 }
 
+/// Bicopter: two tilt-adjustable rotors.
 pub fn mix_bicopter(commands: MotorMixerCommands) -> [f32; 4] {
     let outputs: [f32; 4] = [
         commands.throttle + commands.roll, // motor left
@@ -45,6 +48,7 @@ pub fn mix_bicopter(commands: MotorMixerCommands) -> [f32; 4] {
     outputs
 }
 
+/// Tricopter, 3 motors, one servo-tiltable.
 /// Motor numbering is the same as Betaflight.
 ///
 /// ```text
@@ -115,6 +119,7 @@ pub fn mix_tricopter(commands: MotorMixerCommands, params: &mut MotorMixerParame
     outputs
 }
 
+/// Classic X-configuration quadcopter.
 /// Motor numbering is the same as Betaflight.
 /// Motor rotation is "propellers out" (ie Betaflight "yaw reversed").
 ///
@@ -219,6 +224,7 @@ pub fn mix_quad_x(commands: MotorMixerCommands, params: &mut MotorMixerParameter
     outputs
 }
 
+/// X-configuration hexacopter.
 /// Motor numbering is the same as Betaflight
 /// Motor rotation is "propellers out" (ie Betaflight "yaw reversed").
 ///
