@@ -15,9 +15,6 @@ Once the API has stabilized this project will adopt semantic versioning, the fir
 
 ### Added
 
-- This changelog.
-- CONTRIBUTING.md
-
 ### Changed
 
 ### Removed
@@ -27,6 +24,18 @@ Once the API has stabilized this project will adopt semantic versioning, the fir
 ### Fixed
 
 ### Security
+
+## [0.1.1]
+
+### Added
+
+- This changelog
+- CONTRIBUTING.md
+
+### Changed
+
+- Added documentation.
+- Updated to vqm version [0.1.1]
 
 ## [0.1.0] - 2023-04-13
 
