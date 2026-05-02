@@ -1,5 +1,5 @@
 use crate::{
-    MotorFrequencies, MotorMixer, MotorMixerCommands, MotorMixerCommandsDps, MotorMixerCommon, MotorMixerDriver,
+    MotorFrequencies, MotorMixer, MotorMixerCommands, MotorMixerMessage, MotorMixerCommon, MotorMixerDriver,
     MotorMixerOutput, MotorMixerParameters, mix_quad_x, mixer::MotorOutputs,
 };
 
@@ -21,16 +21,16 @@ pub struct MotorMixerQuadXPwm {
 
 impl Default for MotorMixerQuadXPwm {
     fn default() -> Self {
-        Self::new()
+        Self::new(MotorMixerCommon::default())
     }
 }
 
 impl MotorMixerQuadXPwm {
     const MOTOR_COUNT: usize = 4;
 
-    pub fn new() -> Self {
+    pub fn new(common: MotorMixerCommon) -> Self {
         Self {
-            common: MotorMixerCommon::default(), // more idiomatic than calling new
+            common, // more idiomatic than calling new
             max_duty: 255,
         }
     }
@@ -40,7 +40,7 @@ impl MotorMixerOutput for MotorMixerQuadXPwm {
     // Calculate and output motor mix.
     // Called by the scheduler when the updateOutputsUsingPIDs function running in the AHRS task SIGNALs that output data is available.
     // It is typically called at frequency of between 1000Hz and 8000Hz, so it has to be FAST.
-    fn output_to_motors(&mut self, commands_dps: MotorMixerCommandsDps) {
+    fn output_to_motors(&mut self, commands_dps: MotorMixerMessage) {
         // ALWAYS write 0.0 to the motors if they are not switched on, as a safety precaution
         if !self.common.motors_is_on() || !self.common.motors_is_armed() {
             self.common.outputs = MotorOutputs::default();
@@ -83,7 +83,7 @@ mod tests {
     }
     #[test]
     fn new() {
-        let quadx = MotorMixerQuadXPwm::new();
+        let quadx = MotorMixerQuadXPwm::new(MotorMixerCommon::default());
         assert_eq!(255, quadx.max_duty);
     }
 }

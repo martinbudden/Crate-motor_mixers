@@ -31,7 +31,7 @@ impl Default for RpmNotchFilterBankConfig {
 }
 
 impl RpmNotchFilterBankConfig {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             rpm_filter_fade_range_hz: 50,           // range in which notch filters fade down to min_hz
             rpm_filter_q_x100: 500,                 // Q of the notch filters

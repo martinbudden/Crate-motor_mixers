@@ -14,7 +14,7 @@ pub struct MotorMixerParameters {
 }
 
 impl MotorMixerParameters {
-    fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             motor_output_min: 0.0,
             motor_output_max: 1.0,
@@ -71,7 +71,7 @@ pub struct MixerConfig {
 }
 
 impl MixerConfig {
-    fn new() -> Self {
+    pub const fn new() -> Self {
         Self { mixer_type: MixerType::QuadX as u8, yaw_motors_reversed: true }
     }
 }
@@ -119,7 +119,7 @@ pub struct MotorDeviceConfig {
 }
 
 impl MotorDeviceConfig {
-    fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             motor_pwm_rate: 480, // 16000 for brushed
             motor_protocol: MotorProtocol::Dshot300 as u8,
@@ -149,9 +149,9 @@ pub struct MotorConfig {
 }
 
 impl MotorConfig {
-    fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
-            device: MotorDeviceConfig::default(),
+            device: MotorDeviceConfig::new(),
             motor_idle: 550, // 700 for brushed
             max_throttle: 2000,
             min_command: 1000,
@@ -175,7 +175,7 @@ pub struct ServoDeviceConfig {
 }
 
 impl ServoDeviceConfig {
-    fn new() -> Self {
+    pub const fn new() -> Self {
         Self { servo_center_pulse: 1500, servo_pwm_rate: 50 }
     }
 }
@@ -195,9 +195,9 @@ pub struct ServoConfig {
 }
 
 impl ServoConfig {
-    fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
-            device: ServoDeviceConfig::default(),
+            device: ServoDeviceConfig::new(),
             servo_lowpass_freq: 0,
             tri_unarmed_servo: false,
             channel_forwarding_start_channel: 0,

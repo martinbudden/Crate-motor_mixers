@@ -1,4 +1,4 @@
-use crate::{MixerConfig, MixerType, MotorConfig, MotorFrequencies, MotorMixerCommandsDps, MotorMixerParameters};
+use crate::{MixerConfig, MixerType, MotorConfig, MotorFrequencies, MotorMixerMessage, MotorMixerParameters};
 use signal_filters::SlewRateLimiterf32;
 
 pub const MAX_MOTOR_COUNT: usize = 8;
@@ -24,15 +24,15 @@ pub struct MotorMixerCommon {
 }
 
 impl MotorMixerCommon {
-    fn new() -> Self {
+    pub fn new(mixer_config: MixerConfig, motor_config: MotorConfig) -> Self {
         Self {
             outputs: MotorOutputs::default(),
             output_filters: MotorOutputFilters::default(),
             mixer_type: MixerType::QuadX as u8,
             output_denominator: 1,
             output_count: 0,
-            mixer_config: MixerConfig::default(),
-            motor_config: MotorConfig::default(),
+            mixer_config,
+            motor_config,
             mixer_parameters: MotorMixerParameters::default(),
             throttle_command: 0.0, // used for blackbox recording
             motors_is_on: false,
@@ -44,12 +44,12 @@ impl MotorMixerCommon {
 
 impl Default for MotorMixerCommon {
     fn default() -> Self {
-        Self::new()
+        Self::new(MixerConfig::default(),MotorConfig::default())
     }
 }
 
 pub trait MotorMixerOutput {
-    fn output_to_motors(&mut self, commands_dps: MotorMixerCommandsDps);
+    fn output_to_motors(&mut self, motor_mixer_message: MotorMixerMessage);
 }
 
 pub trait MotorMixer {
@@ -126,7 +126,9 @@ mod tests {
     }
     #[test]
     fn new() {
-        let mixer = MotorMixerCommon::new();
+        let mixer_config = MixerConfig::new();
+        let motor_config = MotorConfig::new();
+        let mixer = MotorMixerCommon::new(mixer_config, motor_config);
         assert_eq!(MixerType::QuadX as u8, mixer.mixer_type);
     }
 }

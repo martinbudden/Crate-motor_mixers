@@ -27,7 +27,7 @@ mod rpm_notch_filters_state_machine;
 
 pub use mixer::{MotorMixer, MotorMixerCommon, MotorMixerDriver, MotorMixerOutput};
 
-pub use commands::{MotorMixerCommands, MotorMixerCommandsDps};
+pub use commands::{MotorMixerCommands, MotorMixerMessage};
 
 pub use mixer_config::{
     MixerConfig, MixerType, MotorConfig, MotorDeviceConfig, MotorMixerParameters, MotorProtocol, ProtocolFamily,

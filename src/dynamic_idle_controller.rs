@@ -28,7 +28,7 @@ pub struct DynamicIdleControllerConfig {
 }
 
 impl DynamicIdleControllerConfig {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             dyn_idle_min_rpm_d100: 0,
             dyn_idle_p_gain_x100: 50,

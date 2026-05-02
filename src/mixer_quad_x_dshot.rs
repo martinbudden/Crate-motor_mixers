@@ -1,6 +1,6 @@
 use crate::mixer::MotorOutputs;
 use crate::{
-    MotorFrequencies, MotorMixer, MotorMixerCommands, MotorMixerCommandsDps, MotorMixerCommon, MotorMixerDriver,
+    MotorFrequencies, MotorMixer, MotorMixerCommands, MotorMixerMessage, MotorMixerCommon, MotorMixerDriver,
     MotorMixerOutput, MotorMixerParameters, RpmNotchFilterBank, RpmNotchFilterBankConfig, mix_quad_x,
 };
 
@@ -47,7 +47,7 @@ impl MotorMixerOutput for MotorMixerQuadXDshot {
     // Calculate and output motor mix.
     // Called by the scheduler when the updateOutputsUsingPIDs function running in the AHRS task SIGNALs that output data is available.
     // It is typically called at frequency of between 1000Hz and 8000Hz, so it has to be FAST.
-    fn output_to_motors(&mut self, commands_dps: MotorMixerCommandsDps) {
+    fn output_to_motors(&mut self, commands_dps: MotorMixerMessage) {
         // ALWAYS write 0.0 to the motors if they are not switched on, as a safety precaution
         if !self.common.motors_is_on() || !self.common.motors_is_armed() {
             self.common.outputs = MotorOutputs::default();
