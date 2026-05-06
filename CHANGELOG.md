@@ -25,6 +25,12 @@ Once the API has stabilized this project will adopt semantic versioning, the fir
 
 ### Security
 
+## [0.1.2]
+
+### Changed
+
+- Updated to latest crates.
+
 ## [0.1.1]
 
 ### Added
