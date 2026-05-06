@@ -33,7 +33,7 @@ impl MotorMixerCommon {
             output_count: 0,
             mixer_config,
             motor_config,
-            mixer_parameters: MotorMixerParameters::default(),
+            mixer_parameters: MotorMixerParameters::new(),
             throttle_command: 0.0, // used for blackbox recording
             motors_is_on: false,
             motors_is_armed: false,
@@ -44,7 +44,7 @@ impl MotorMixerCommon {
 
 impl Default for MotorMixerCommon {
     fn default() -> Self {
-        Self::new(MixerConfig::default(),MotorConfig::default())
+        Self::new(MixerConfig::default(), MotorConfig::default())
     }
 }
 

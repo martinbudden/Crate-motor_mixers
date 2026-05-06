@@ -1,3 +1,4 @@
+use pidsk_controller::PidGainsf32;
 use serde::{Deserialize, Serialize};
 
 pub use pidsk_controller::{PidController, Pidf32};
@@ -80,7 +81,7 @@ impl DynamicIdleController {
             minimum_allowed_motor_hz: 0.0, // minimum motor Hz, dynamically controlled
             max_increase: 0.0,
             // dynamic_idle_max_increase_delay_k :f32,
-            pid: Pidf32::new(1.0, 0.0, 0.0), // PID to dynamic idle, ie to ensure slowest motor does not go below min RPS
+            pid: Pidf32::new(PidGainsf32::new(1.0, 0.0, 0.0, 0.0, 0.0)), // PID to dynamic idle, ie to ensure slowest motor does not go below min RPS
             dterm_filter: Pt1Filterf32::default(),
             config: DynamicIdleControllerConfig::default(),
         }

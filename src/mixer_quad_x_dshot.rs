@@ -1,6 +1,6 @@
 use crate::mixer::MotorOutputs;
 use crate::{
-    MotorFrequencies, MotorMixer, MotorMixerCommands, MotorMixerMessage, MotorMixerCommon, MotorMixerDriver,
+    MotorFrequencies, MotorMixer, MotorMixerCommands, MotorMixerCommon, MotorMixerDriver, MotorMixerMessage,
     MotorMixerOutput, MotorMixerParameters, RpmNotchFilterBank, RpmNotchFilterBankConfig, mix_quad_x,
 };
 
@@ -35,7 +35,7 @@ impl MotorMixerQuadXDshot {
     pub fn new() -> Self {
         Self {
             common: MotorMixerCommon::default(),
-            config: RpmNotchFilterBankConfig::default(),
+            config: RpmNotchFilterBankConfig::new(),
             rpm_notch_filters: RpmNotchFilterBank::default(),
             motor_frequencies_hz: MotorFrequencies::default(),
             rpm_filter_iteration_count: 0,

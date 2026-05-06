@@ -1,5 +1,5 @@
 use crate::{
-    MotorFrequencies, MotorMixer, MotorMixerCommands, MotorMixerMessage, MotorMixerCommon, MotorMixerDriver,
+    MotorFrequencies, MotorMixer, MotorMixerCommands, MotorMixerCommon, MotorMixerDriver, MotorMixerMessage,
     MotorMixerOutput, MotorMixerParameters, mix_quad_x, mixer::MotorOutputs,
 };
 

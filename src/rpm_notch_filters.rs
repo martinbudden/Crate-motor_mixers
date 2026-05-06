@@ -102,7 +102,7 @@ impl Default for RpmNotchFilterBank {
 impl RpmNotchFilterBank {
     pub fn new(looptime_seconds: f32) -> Self {
         Self {
-            config: RpmNotchFilterBankConfig::default(),
+            config: RpmNotchFilterBankConfig::new(),
             frequencies: RpmNotchFilterFrequencies::default(),
             state: State::default(),
             ctx: RpmNotchFilterBankContext::default(),
