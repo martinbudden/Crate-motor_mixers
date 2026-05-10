@@ -38,7 +38,7 @@ Once the API has stabilized this project will adopt semantic versioning, the fir
 - Updated to latest crates.
 - Made `new` functions `const` where possible.
 
-## [0.1.1]
+## [0.1.1] - 2026-04-26
 
 ### Added
 
