@@ -25,11 +25,18 @@ Once the API has stabilized this project will adopt semantic versioning, the fir
 
 ### Security
 
-## [0.1.2]
+## [0.1.3] - 2026-05-10
+
+### Changed
+
+- Updated to pidsk-controller 0.1.3.
+
+## [0.1.2] - 2026-05-06
 
 ### Changed
 
 - Updated to latest crates.
+- Made `new` functions `const` where possible.
 
 ## [0.1.1]
 
@@ -43,6 +50,6 @@ Once the API has stabilized this project will adopt semantic versioning, the fir
 - Added documentation.
 - Updated to vqm version [0.1.1]
 
-## [0.1.0] - 2023-04-13
+## [0.1.0] - 2026-04-13
 
 Initial release.
