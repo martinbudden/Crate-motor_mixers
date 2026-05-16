@@ -1,7 +1,6 @@
-use pidsk_controller::PidGainsf32;
 use serde::{Deserialize, Serialize};
 
-pub use pidsk_controller::{PidController, Pidf32};
+pub use pidsk_controller::{PidController, PidGainsf32, Pidf32};
 pub use signal_filters::{Pt1Filterf32, SignalFilter};
 
 /// Conversion between RPM and Hz.
@@ -81,9 +80,9 @@ impl DynamicIdleController {
             minimum_allowed_motor_hz: 0.0, // minimum motor Hz, dynamically controlled
             max_increase: 0.0,
             // dynamic_idle_max_increase_delay_k :f32,
-            pid: Pidf32::new(PidGainsf32::new(1.0, 0.0, 0.0, 0.0, 0.0)), // PID to dynamic idle, ie to ensure slowest motor does not go below min RPS
-            dterm_filter: Pt1Filterf32::default(),
-            config: DynamicIdleControllerConfig::default(),
+            pid: Pidf32::default(), // PID to dynamic idle, ie to ensure slowest motor does not go below min RPS
+            dterm_filter: Pt1Filterf32::new(),
+            config: DynamicIdleControllerConfig::new(),
         }
     }
 
@@ -99,18 +98,22 @@ impl DynamicIdleController {
         self.minimum_allowed_motor_hz = f32::from(self.config.dyn_idle_min_rpm_d100) * 100.0 / 60.0;
         self.pid.set_setpoint(self.minimum_allowed_motor_hz);
 
-        // use Betaflight multiplier for compatibility with Betaflight Configurator
-        self.pid.set_kp(f32::from(self.config.dyn_idle_p_gain_x100) * 0.00015);
-
         #[allow(clippy::cast_precision_loss)]
         let delta_t = self.task_interval_microseconds as f32 * 0.000_001;
 
-        self.pid.set_ki(f32::from(self.config.dyn_idle_i_gain_x100) * 0.01 * delta_t);
+        // use Betaflight multiplier for compatibility with Betaflight Configurator
+        let pid_gains = PidGainsf32 {
+            kp: f32::from(self.config.dyn_idle_p_gain_x100) * 0.00015,
+            ki: f32::from(self.config.dyn_idle_i_gain_x100) * 0.01 * delta_t,
+            kd: f32::from(self.config.dyn_idle_i_gain_x100) * 0.000_000_3 / delta_t,
+            ks: 0.0,
+            kk: 0.0,
+        };
+        self.pid.set_gains(pid_gains);
         // limit Iterm to range [0, _max_increase]
         self.pid.set_integral_max(self.max_increase);
         self.pid.set_integral_min(0.0);
 
-        self.pid.set_kd(f32::from(self.config.dyn_idle_i_gain_x100) * 0.000_000_3 / delta_t);
         self.dterm_filter.set_k(800.0 * delta_t / 20.0); //approx 20ms D delay, arbitrarily suits many motors
     }
 
@@ -156,8 +159,7 @@ mod tests {
         };
     }
 
-    #[allow(unused)]
-    fn is_normal<T: Sized + Send + Sync + Unpin>() {}
+    fn _is_normal<T: Sized + Send + Sync + Unpin>() {}
     fn is_full<T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq>() {}
     fn is_config<
         T: Sized + Send + Sync + Unpin + Copy + Clone + Default + PartialEq + Serialize + for<'a> Deserialize<'a>,
@@ -220,13 +222,11 @@ mod tests {
         assert_near!(0.0375, dynamic_idle_controller.calculate_speed_increase(900.0.to_hz(), delta_t));
     }
     #[test]
-    #[allow(clippy::field_reassign_with_default)]
+    //#[allow(clippy::field_reassign_with_default)]
     fn config() {
         use postcard::{from_bytes, to_slice};
 
-        let mut config = DynamicIdleControllerConfig::default();
-        config.dyn_idle_d_gain_x100 = 119;
-
+        let config = DynamicIdleControllerConfig { dyn_idle_d_gain_x100: 119, ..Default::default() };
         let mut buf = [0u8; 64]; // Size based on your config size
         #[allow(clippy::unwrap_used)]
         let data = to_slice(&config, &mut buf).unwrap();

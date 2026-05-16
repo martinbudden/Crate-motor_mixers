@@ -40,11 +40,13 @@ impl DshotCodec {
     pub const TELEMETRY_INVALID: u16 = 0xFFFF;
 
     /// Convert PWM (1000-2000) to Dshot value.
+    #[inline]
     pub fn pwm_to_dshot(value: u16) -> u16 {
         ((value - 1000) * 2) + 47
     }
 
     /// Convert PWM to Dshot with clipping.
+    #[inline]
     pub fn pwm_to_dshot_clamped(value: u16) -> u16 {
         if value > 2000 {
             Self::pwm_to_dshot(2000)
@@ -56,32 +58,38 @@ impl DshotCodec {
     }
 
     /// Unidirectional (non-inverted) checksum.
+    #[inline]
     pub fn checksum_unidirectional(value: u16) -> u16 {
         (value ^ (value >> 4) ^ (value >> 8)) & 0x0F
     }
 
     /// Check if unidirectional checksum is valid.
+    #[inline]
     pub fn checksum_unidirectional_is_ok(value: u16) -> bool {
         Self::checksum_unidirectional(value >> 4) == (value & 0x0F)
     }
 
     /// Bidirectional (inverted) checksum.
+    #[inline]
     pub fn checksum_bidirectional(value: u16) -> u16 {
         (!(value ^ (value >> 4) ^ (value >> 8))) & 0x0F
     }
 
     /// Check if bidirectional checksum is valid.
+    #[inline]
     pub fn checksum_bidirectional_is_ok(value: u16) -> bool {
         Self::checksum_bidirectional(value >> 4) == (value & 0x0F)
     }
 
     /// Create unidirectional Dshot frame.
+    #[inline]
     pub fn frame_unidirectional(value: u16) -> u16 {
         let value = value << 1;
         (value << 4) | Self::checksum_unidirectional(value)
     }
 
     /// Create bidirectional Dshot frame.
+    #[inline]
     pub fn frame_bidirectional(value: u16) -> u16 {
         let value = value << 1;
         (value << 4) | Self::checksum_bidirectional(value)
@@ -207,12 +215,14 @@ impl DshotCodec {
         }
     }
 
+    #[inline]
     pub fn decode_samples_slice(_samples: &[u32], _telemetry_type: &mut u16) -> u32 {
         0
     }
 
     // see [DSHOT - the missing Handbook](https://brushlesswhoop.com/dshot-and-bidirectional-dshot/)
     // for a good description of these conversions
+    #[inline]
     pub fn erpm_to_gcr20(value: u16) -> u32 {
         let mut ret = u32::from(Self::NIBBLE_TO_QUINTET[(value & 0x1F) as usize]);
         ret |= u32::from(Self::NIBBLE_TO_QUINTET[((value >> 4) & 0x1F) as usize]) << 5;

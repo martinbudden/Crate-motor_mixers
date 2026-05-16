@@ -1,8 +1,8 @@
 use vqm::Vector4df32;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-/// roll, pitch, and yaw commands in the range [-1.0, 1.0],
-/// throttle commands in the range [0.0, 1.0].
+/// Roll, pitch, and yaw commands, in the range [-1.0, 1.0].<br>
+/// Throttle commands are in the range [0.0, 1.0].
 pub struct MotorMixerCommands {
     pub roll: f32,
     pub pitch: f32,
@@ -22,8 +22,8 @@ impl Default for MotorMixerCommands {
     }
 }
 
-/// Commands in the DPS range (ie [-2000.0, 2000.0]), for roll, pitch and yaw,
-/// throttle commands in the range [0.0, 1.0].
+/// Commands in the DPS range (ie `[-2000.0, 2000.0]`), for roll, pitch and yaw.<br>
+/// Throttle commands are in the range `[0.0, 1.0]`.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MotorMixerMessage {
     pub roll_dps: f32,

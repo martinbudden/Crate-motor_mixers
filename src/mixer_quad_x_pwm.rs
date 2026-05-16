@@ -9,7 +9,7 @@ impl MotorMixerDriver for MotorMixerQuadXPwm {
     }
     // Null implementation for PWM, since we cannot obtain the motor frequencies.
     fn read_motor_frequencies_hz(&mut self) -> MotorFrequencies {
-        MotorFrequencies::default()
+        MotorFrequencies::new()
     }
 }
 
@@ -21,14 +21,14 @@ pub struct MotorMixerQuadXPwm {
 
 impl Default for MotorMixerQuadXPwm {
     fn default() -> Self {
-        Self::new(MotorMixerCommon::default())
+        Self::new(MotorMixerCommon::new())
     }
 }
 
 impl MotorMixerQuadXPwm {
     const MOTOR_COUNT: usize = 4;
 
-    pub fn new(common: MotorMixerCommon) -> Self {
+    pub const fn new(common: MotorMixerCommon) -> Self {
         Self {
             common, // more idiomatic than calling new
             max_duty: 255,

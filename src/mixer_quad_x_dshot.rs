@@ -10,7 +10,7 @@ impl MotorMixerDriver for MotorMixerQuadXDshot {
     }
     fn read_motor_frequencies_hz(&mut self) -> MotorFrequencies {
         // TODO: implement read_motor_frequencies_hz for MotorMixerQuadDshot
-        MotorFrequencies::default()
+        MotorFrequencies::new()
     }
 }
 
@@ -32,12 +32,12 @@ impl Default for MotorMixerQuadXDshot {
 impl MotorMixerQuadXDshot {
     pub const MOTOR_COUNT: usize = 4;
 
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
-            common: MotorMixerCommon::default(),
+            common: MotorMixerCommon::new(),
             config: RpmNotchFilterBankConfig::new(),
-            rpm_notch_filters: RpmNotchFilterBank::default(),
-            motor_frequencies_hz: MotorFrequencies::default(),
+            rpm_notch_filters: RpmNotchFilterBank::new(),
+            motor_frequencies_hz: MotorFrequencies::new(),
             rpm_filter_iteration_count: 0,
         }
     }
@@ -50,7 +50,7 @@ impl MotorMixerOutput for MotorMixerQuadXDshot {
     fn output_to_motors(&mut self, commands_dps: MotorMixerMessage) {
         // ALWAYS write 0.0 to the motors if they are not switched on, as a safety precaution
         if !self.common.motors_is_on() || !self.common.motors_is_armed() {
-            self.common.outputs = MotorOutputs::default();
+            self.common.outputs = MotorOutputs::new();
             self.write_to_motors(self.common.outputs);
             return;
         }
@@ -62,7 +62,7 @@ impl MotorMixerOutput for MotorMixerQuadXDshot {
 
         if self.common.output_this_cycle() {
             const MIXER_OUTPUT_SCALE_FACTOR: f32 = 1000.0;
-            let mut mix_params = MotorMixerParameters::default();
+            let mut mix_params = MotorMixerParameters::new();
             let commands = MotorMixerCommands {
                 throttle: commands_dps.throttle,
                 // scale roll, pitch, and yaw from DPS range to [-1.0F, 1.0F]
@@ -102,7 +102,7 @@ mod tests {
         is_full::<MotorMixerQuadXDshot>();
     }
     #[test]
-    fn new() {
+    fn test_new() {
         let _quadx = MotorMixerQuadXDshot::new();
     }
 }

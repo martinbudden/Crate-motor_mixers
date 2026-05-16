@@ -66,7 +66,7 @@ impl<T> MotorDriver<T>
 where
     T: GeneralInstance4Channel,
 {
-    pub fn new(pwm: SimplePwm<'static, T>) -> Self {
+    pub const fn new(pwm: SimplePwm<'static, T>) -> Self {
         let channels = pwm.split();
         Self {
             ch0: channels.ch1,
@@ -75,6 +75,7 @@ where
             ch3: channels.ch4,
         }
     }
+    #[inline]
     pub fn write_motors(&mut self, motor_outputs: MotorOutputs) {
         ch0.set_duty_cycle(((1.0 + motor_output[0]) * 1000.0 / 20.0) as u32);
         ch0.enable();

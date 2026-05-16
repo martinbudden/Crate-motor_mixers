@@ -8,13 +8,25 @@ pub const FUNDAMENTAL: usize = 0;
 pub const SECOND_HARMONIC: usize = 1;
 pub const THIRD_HARMONIC: usize = 2;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RpmFilterMotorState {
     frequency_hz_unclamped: f32,
     weight_multiplier: f32,
     // no need to cache omega, since we are caching sin_omega and cos_omega instead
     sin_omega: f32,
     cos_omega: f32,
+}
+
+impl RpmFilterMotorState {
+    pub const fn new() -> Self {
+        Self { frequency_hz_unclamped: 0.0, weight_multiplier: 0.0, sin_omega: 0.0, cos_omega: 0.0 }
+    }
+}
+
+impl Default for RpmFilterMotorState {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 pub type RpmFilterMotorStates = [RpmFilterMotorState; MAX_MOTOR_COUNT];
@@ -29,6 +41,12 @@ pub enum State {
     Fundamental(usize),
     SecondHarmonic(usize),
     ThirdHarmonic(usize),
+}
+
+impl State {
+    pub const fn new() -> Self {
+        Self::Stopped
+    }
 }
 
 /*impl From<u8> for State {
@@ -58,7 +76,7 @@ impl State {
         }
     }
 
-    /// Perform one step of the state machine
+    /// Perform one step of the state machine.<br>
     /// This is called from `MotorMixer::rpm_filter_set_frequency_hz_iteration_step` and so needs to be FAST.
     pub fn update(
         &mut self,
@@ -203,7 +221,7 @@ mod tests {
         is_full::<RpmFilterMotorState>();
     }
     #[test]
-    fn new() {
+    fn test_new() {
         let config = RpmNotchFilterBankConfig::new();
         assert_eq!(50, config.rpm_filter_fade_range_hz);
     }

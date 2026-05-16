@@ -17,6 +17,12 @@ Once the API has stabilized this project will adopt semantic versioning, the fir
 
 ### Changed
 
+- Updated to vqm 0.1.5
+- Updated to signal-filters 0.1.4
+- Updated to pidsk-controller 0.1.4
+- Made constructors `const` where possible.
+- Improved documentation.
+
 ### Removed
 
 ### Deprecated

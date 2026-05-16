@@ -3,14 +3,18 @@ use serde::{Deserialize, Serialize};
 // parameters to mix function
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MotorMixerParameters {
-    // minimum motor output, typically set to 5.5% to avoid ESC desynchronization,
-    // may be set to zero if using dynamic idle control or brushed motors
+    /// minimum motor output, typically set to 5.5% to avoid ESC desynchronization,
+    /// may be set to zero if using dynamic idle control or brushed motors.
     pub motor_output_min: f32,
     pub motor_output_max: f32,
-    pub max_servo_angle_radians: f32, // used by tricopter
-    pub throttle: f32,                // possibly adjusted throttle value for recording by blackbox
-    pub undershoot: f32,              // used by test code
-    pub overshoot: f32,               // used by test code
+    /// used by tricopter.
+    pub max_servo_angle_radians: f32,
+    /// possibly adjusted throttle value for recording by blackbox.
+    pub throttle: f32,
+    /// used by test code.
+    pub undershoot: f32,
+    /// used by test code.
+    pub overshoot: f32,
 }
 
 impl MotorMixerParameters {
@@ -18,10 +22,10 @@ impl MotorMixerParameters {
         Self {
             motor_output_min: 0.0,
             motor_output_max: 1.0,
-            max_servo_angle_radians: 0.0, // used by tricopter
-            throttle: 0.0,                // possibly adjusted throttle value for recording by blackbox
-            undershoot: 0.0,              // used by test code
-            overshoot: 0.0,               // used by test code
+            max_servo_angle_radians: 0.0,
+            throttle: 0.0,
+            undershoot: 0.0,
+            overshoot: 0.0,
         }
     }
 }
@@ -65,7 +69,7 @@ pub enum MixerType {
 
 #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub struct MixerConfig {
-    // constants compatible with Betaflight mixerMode_e enums.
+    /// constants compatible with Betaflight `mixerMode_e` enums.
     pub mixer_type: u8,
     pub yaw_motors_reversed: bool,
 }
@@ -109,9 +113,11 @@ pub enum MotorProtocol {
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub struct MotorDeviceConfig {
-    pub motor_pwm_rate: u16, // The update rate of motor outputs (50-498Hz)
+    /// The update rate of motor outputs (50-498Hz).
+    pub motor_pwm_rate: u16,
     pub motor_protocol: u8,
-    pub motor_inversion: bool, // Active-High vs Active-Low. Useful for brushed FCs converted for brushless operation
+    /// Active-High vs Active-Low. Useful for brushed FCs converted for brushless operation.
+    pub motor_inversion: bool,
     pub use_continuous_update: bool,
     pub use_burst_dshot: bool,
     pub use_dshot_telemetry: bool,
@@ -141,11 +147,16 @@ impl Default for MotorDeviceConfig {
 #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub struct MotorConfig {
     pub device: MotorDeviceConfig,
-    pub motor_idle: u16, // percentage of the motor range added to the disarmed value to give the idle value
-    pub max_throttle: u16, // value of throttle at full power, can be set up to 2000
-    pub min_command: u16, // value for ESCs when they are not armed. For some specific ESCs this value must be lowered to 900
-    pub kv: u16,          // Motor constant estimate RPM under no load
-    pub motor_pole_count: u8, // Number of motor poles, used to calculate actual RPM from eRPM
+    /// percentage of the motor range added to the disarmed value to give the idle value.
+    pub motor_idle: u16,
+    // value of throttle at full power, can be set up to 2000.
+    pub max_throttle: u16,
+    // value for ESCs when they are not armed. For some specific ESCs this value must be lowered to 900.
+    pub min_command: u16,
+    // Motor constant: estimated RPM under no load.
+    pub kv: u16,
+    // Number of motor poles, used to calculate actual RPM from eRPM.
+    pub motor_pole_count: u8,
 }
 
 impl MotorConfig {
@@ -169,9 +180,11 @@ impl Default for MotorConfig {
 
 #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub struct ServoDeviceConfig {
-    // PWM values, in milliseconds, common range is 1000-2000 (1ms to 2ms)
-    pub servo_center_pulse: u16, // This is the value for servos when they should be in the middle. e.g. 1500.
-    pub servo_pwm_rate: u16,     // The update rate of servo outputs (50-498Hz)
+    /// PWM values, in milliseconds, common range is 1000-2000 (1ms to 2ms).
+    /// This is the value for servos when they should be in the middle. e.g. 1500.
+    pub servo_center_pulse: u16,
+    // The update rate of servo outputs, typically 50-498Hz.
+    pub servo_pwm_rate: u16,
 }
 
 impl ServoDeviceConfig {
@@ -189,8 +202,10 @@ impl Default for ServoDeviceConfig {
 #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub struct ServoConfig {
     pub device: ServoDeviceConfig,
-    pub servo_lowpass_freq: u16, // lowpass servo filter frequency selection; 1/1000ths of loop freq
-    pub tri_unarmed_servo: bool, // send tail servo correction pulses even when unarmed
+    /// lowpass servo filter frequency selection; 1/1000ths of loop freq.
+    pub servo_lowpass_freq: u16,
+    // send tail servo correction pulses even when unarmed.
+    pub tri_unarmed_servo: bool,
     pub channel_forwarding_start_channel: u8,
 }
 

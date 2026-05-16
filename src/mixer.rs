@@ -1,10 +1,67 @@
+use core::ops::{Deref, DerefMut};
+
 use crate::{MixerConfig, MixerType, MotorConfig, MotorFrequencies, MotorMixerMessage, MotorMixerParameters};
 use signal_filters::SlewRateLimiterf32;
 
 pub const MAX_MOTOR_COUNT: usize = 8;
 
-pub type MotorOutputs = [f32; MAX_MOTOR_COUNT];
-pub type MotorOutputFilters = [SlewRateLimiterf32; MAX_MOTOR_COUNT];
+/// Array of motor rotation frequencies, one for each motor.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MotorOutputs(pub [f32; MAX_MOTOR_COUNT]);
+
+impl MotorOutputs {
+    pub const fn new() -> Self {
+        Self([0.0; MAX_MOTOR_COUNT])
+    }
+}
+
+impl Default for MotorOutputs {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Deref for MotorOutputs {
+    type Target = [f32; MAX_MOTOR_COUNT];
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for MotorOutputs {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+//pub type MotorOutputFilters = [SlewRateLimiterf32; MAX_MOTOR_COUNT];
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MotorOutputFilters(pub [SlewRateLimiterf32; MAX_MOTOR_COUNT]);
+
+impl MotorOutputFilters {
+    pub const fn new() -> Self {
+        Self([SlewRateLimiterf32::new(); MAX_MOTOR_COUNT])
+    }
+}
+
+impl Default for MotorOutputFilters {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Deref for MotorOutputFilters {
+    type Target = [SlewRateLimiterf32; MAX_MOTOR_COUNT];
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for MotorOutputFilters {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 /// Common properties of all motor mixers.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -17,17 +74,19 @@ pub struct MotorMixerCommon {
     pub mixer_config: MixerConfig,
     pub motor_config: MotorConfig,
     mixer_parameters: MotorMixerParameters,
-    throttle_command: f32, // used for blackbox recording
+    /// used for blackbox recording.
+    throttle_command: f32,
     motors_is_on: bool,
     motors_is_armed: bool,
-    motors_is_reversed: bool, //reversed motors typically used to flip multi-rotor after a crash
+    /// reversed motors typically used to flip multi-rotor after a crash.
+    motors_is_reversed: bool,
 }
 
 impl MotorMixerCommon {
-    pub fn new(mixer_config: MixerConfig, motor_config: MotorConfig) -> Self {
+    pub const fn with_config(mixer_config: MixerConfig, motor_config: MotorConfig) -> Self {
         Self {
-            outputs: MotorOutputs::default(),
-            output_filters: MotorOutputFilters::default(),
+            outputs: MotorOutputs::new(),
+            output_filters: MotorOutputFilters::new(),
             mixer_type: MixerType::QuadX as u8,
             output_denominator: 1,
             output_count: 0,
@@ -40,11 +99,14 @@ impl MotorMixerCommon {
             motors_is_reversed: false, //reversed motors typically used to flip multi-rotor after a crash
         }
     }
+    pub const fn new() -> Self {
+        Self::with_config(MixerConfig::new(), MotorConfig::new())
+    }
 }
 
 impl Default for MotorMixerCommon {
     fn default() -> Self {
-        Self::new(MixerConfig::default(), MotorConfig::default())
+        Self::new()
     }
 }
 
@@ -56,6 +118,7 @@ pub trait MotorMixer {
     fn common(&self) -> &MotorMixerCommon;
     fn common_mut(&mut self) -> &mut MotorMixerCommon;
 
+    #[inline]
     fn output_denominator(&self) -> usize {
         self.common().output_denominator as usize
     }
@@ -85,9 +148,11 @@ pub trait MotorMixer {
     fn throttle_command(&self) -> f32 {
         self.common().throttle_command
     }
+    #[inline]
     fn set_throttle_command(&mut self, throttle_command: f32) {
         self.common_mut().throttle_command = throttle_command;
     }
+    #[inline]
     fn output_this_cycle(&mut self) -> bool {
         // TODO: check the logic of this
         self.common_mut().output_count += 1;
@@ -100,9 +165,11 @@ pub trait MotorMixer {
 }
 
 impl MotorMixer for MotorMixerCommon {
+    #[inline]
     fn common(&self) -> &MotorMixerCommon {
         self
     }
+    #[inline]
     fn common_mut(&mut self) -> &mut MotorMixerCommon {
         self
     }
@@ -128,7 +195,7 @@ mod tests {
     fn new() {
         let mixer_config = MixerConfig::new();
         let motor_config = MotorConfig::new();
-        let mixer = MotorMixerCommon::new(mixer_config, motor_config);
+        let mixer = MotorMixerCommon::with_config(mixer_config, motor_config);
         assert_eq!(MixerType::QuadX as u8, mixer.mixer_type);
     }
 }

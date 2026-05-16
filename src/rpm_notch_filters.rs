@@ -1,8 +1,12 @@
+use core::ops::{Deref, DerefMut};
+
 //use defmt::debug;
 //use embassy_time::{Instant, Timer};
 use crate::{
     mixer::MAX_MOTOR_COUNT,
-    rpm_notch_filters_state_machine::{FUNDAMENTAL, RpmFilterMotorStates, SECOND_HARMONIC, State, THIRD_HARMONIC},
+    rpm_notch_filters_state_machine::{
+        FUNDAMENTAL, RpmFilterMotorState, RpmFilterMotorStates, SECOND_HARMONIC, State, THIRD_HARMONIC,
+    },
 };
 use serde::{Deserialize, Serialize};
 use signal_filters::{BiquadFilterVector3df32, Pt1Filterf32};
@@ -10,37 +14,70 @@ use signal_filters::{BiquadFilterVector3df32, Pt1Filterf32};
 use vqm::Vector3df32;
 
 pub const RPM_FILTER_HARMONICS_COUNT: usize = 3;
-/// Array of motor rotation frequencies, one for each motor.
-pub type MotorFrequencies = [f32; MAX_MOTOR_COUNT];
 
-#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
-pub struct RpmNotchFilterBankConfig {
-    pub rpm_filter_fade_range_hz: u16, // range in which notch filters fade down to min_hz
-    pub rpm_filter_q_x100: u16,        // Q of the notch filters * 100
-    pub rpm_filter_lpf_hz: u16,        // LPF cutoff (from motor rpm converted to Hz)
-    pub rpm_filter_weights_x100: [u16; RPM_FILTER_HARMONICS_COUNT], // weight as a percentage for each harmonic
-    pub rpm_filter_harmonics: u8,      // number of harmonics, zero means filters off
-    pub rpm_filter_min_hz: u8,         // minimum notch frequency for fundamental harmonic
-    pub motor_count: u8,
+/// Array of motor rotation frequencies, one for each motor.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MotorFrequencies(pub [f32; MAX_MOTOR_COUNT]);
+
+impl MotorFrequencies {
+    pub const fn new() -> Self {
+        Self([0.0; MAX_MOTOR_COUNT])
+    }
 }
 
-impl Default for RpmNotchFilterBankConfig {
+impl Default for MotorFrequencies {
     fn default() -> Self {
         Self::new()
     }
 }
 
+impl Deref for MotorFrequencies {
+    type Target = [f32; MAX_MOTOR_COUNT];
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for MotorFrequencies {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
+pub struct RpmNotchFilterBankConfig {
+    /// range in which notch filters fade down to `min_hz`.
+    pub rpm_filter_fade_range_hz: u16,
+    /// Q of the notch filters * 100.
+    pub rpm_filter_q_x100: u16,
+    /// LPF cutoff (from motor rpm converted to Hz).
+    pub rpm_filter_lpf_hz: u16,
+    /// weight as a percentage for each harmonic.
+    pub rpm_filter_weights_x100: [u16; RPM_FILTER_HARMONICS_COUNT],
+    /// number of harmonics, zero means filters off.
+    pub rpm_filter_harmonics: u8,
+    /// minimum notch frequency for fundamental harmonic.
+    pub rpm_filter_min_hz: u8,
+    pub motor_count: u8,
+}
+
 impl RpmNotchFilterBankConfig {
     pub const fn new() -> Self {
         Self {
-            rpm_filter_fade_range_hz: 50,           // range in which notch filters fade down to min_hz
-            rpm_filter_q_x100: 500,                 // Q of the notch filters
-            rpm_filter_lpf_hz: 150,                 // LPF cutoff (from motor rpm converted to Hz)
-            rpm_filter_weights_x100: [100, 0, 100], // weight as a percentage for each harmonic
-            rpm_filter_harmonics: 3,                // number of harmonics, zero means filters off
-            rpm_filter_min_hz: 100,                 // minimum notch frequency for fundamental harmonic
+            rpm_filter_fade_range_hz: 50,
+            rpm_filter_q_x100: 500,
+            rpm_filter_lpf_hz: 150,
+            rpm_filter_weights_x100: [100, 0, 100],
+            rpm_filter_harmonics: 3,
+            rpm_filter_min_hz: 100,
             motor_count: 4,
         }
+    }
+}
+
+impl Default for RpmNotchFilterBankConfig {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -54,16 +91,12 @@ pub struct RpmNotchFilterFrequencies {
     pub fade_range_hz: f32,
 }
 
-impl Default for RpmNotchFilterFrequencies {
-    fn default() -> Self {
-        Self::new(50.0)
-    }
-}
-
 impl RpmNotchFilterFrequencies {
-    pub fn new(fade_range_hz: f32) -> Self {
+    const DEFAULT_FADE_RANGE: f32 = 50.0;
+
+    pub const fn with_fade_range_hz(fade_range_hz: f32) -> Self {
         Self {
-            motor_frequencies_hz: MotorFrequencies::default(),
+            motor_frequencies_hz: MotorFrequencies::new(),
             min_hz: 100.0,
             max_hz: 0.0,
             half_of_max_hz: 0.0,
@@ -71,14 +104,63 @@ impl RpmNotchFilterFrequencies {
             fade_range_hz,
         }
     }
+
+    pub const fn new() -> Self {
+        Self::with_fade_range_hz(Self::DEFAULT_FADE_RANGE)
+    }
 }
-type NotchFilters = [[BiquadFilterVector3df32; RPM_FILTER_HARMONICS_COUNT]; MAX_MOTOR_COUNT];
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+
+impl Default for RpmNotchFilterFrequencies {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct NotchFilters(pub [[BiquadFilterVector3df32; RPM_FILTER_HARMONICS_COUNT]; MAX_MOTOR_COUNT]);
+
+impl NotchFilters {
+    pub const fn new() -> Self {
+        Self([[BiquadFilterVector3df32::new(); RPM_FILTER_HARMONICS_COUNT]; MAX_MOTOR_COUNT])
+    }
+}
+
+impl Deref for NotchFilters {
+    type Target = [[BiquadFilterVector3df32; RPM_FILTER_HARMONICS_COUNT]; MAX_MOTOR_COUNT];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for NotchFilters {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RpmNotchFilterBankContext {
     pub motor_rpm_filters: [Pt1Filterf32; MAX_MOTOR_COUNT],
     pub notch_filters: NotchFilters,
     pub motor_states: RpmFilterMotorStates,
     pub weights: [f32; RPM_FILTER_HARMONICS_COUNT],
+}
+
+impl RpmNotchFilterBankContext {
+    pub const fn new() -> Self {
+        Self {
+            motor_rpm_filters: [Pt1Filterf32::new(); MAX_MOTOR_COUNT],
+            notch_filters: NotchFilters::new(),
+            motor_states: [RpmFilterMotorState::new(); MAX_MOTOR_COUNT],
+            weights: [0.0; RPM_FILTER_HARMONICS_COUNT],
+        }
+    }
+}
+
+impl Default for RpmNotchFilterBankContext {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// Bank of `RpmFilters`, one for each motor.
@@ -93,24 +175,32 @@ pub struct RpmNotchFilterBank {
     q: f32,
 }
 
-impl Default for RpmNotchFilterBank {
-    fn default() -> Self {
-        Self::new(0.001)
-    }
-}
-
 impl RpmNotchFilterBank {
-    pub fn new(looptime_seconds: f32) -> Self {
+    pub const DEFAULT_LOOPTIME_SECONDS: f32 = 0.001;
+
+    pub const fn with_looptime_seconds(looptime_seconds: f32) -> Self {
         Self {
             config: RpmNotchFilterBankConfig::new(),
-            frequencies: RpmNotchFilterFrequencies::default(),
-            state: State::default(),
-            ctx: RpmNotchFilterBankContext::default(),
+            frequencies: RpmNotchFilterFrequencies::new(),
+            state: State::new(),
+            ctx: RpmNotchFilterBankContext::new(),
             looptime_seconds,
             q: 0.0,
         }
     }
 
+    pub const fn new() -> Self {
+        Self::with_looptime_seconds(Self::DEFAULT_LOOPTIME_SECONDS)
+    }
+}
+
+impl Default for RpmNotchFilterBank {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl RpmNotchFilterBank {
     pub fn set_config(&mut self, config: RpmNotchFilterBankConfig) {
         self.config = config;
 
@@ -151,6 +241,7 @@ impl RpmNotchFilterBank {
 
     /// Start the filter state machine
     /// This is called from `MotorMixer::output_to_motors` and so needs to be FAST.
+    #[inline]
     pub fn start_updating_filter_frequencies(&mut self, motor_frequencies_hz: MotorFrequencies) {
         if self.config.rpm_filter_lpf_hz == 0 {
             return;
@@ -159,12 +250,14 @@ impl RpmNotchFilterBank {
         self.state.start();
     }
 
+    #[inline]
     pub fn update_filter_frequencies_step(&mut self) {
         //self.state = self.state.update(self);
         self.state.update(&self.config, self.frequencies, &mut self.ctx);
     }
 
     /// Apply the notch filters for all selected harmonics for the given motor.
+    #[inline]
     pub fn update(ctx: &mut RpmNotchFilterBankContext, input: Vector3df32, motor_index: usize) -> Vector3df32 {
         let mut ret = ctx.notch_filters[motor_index][FUNDAMENTAL].update_notch_weighted(input);
 
@@ -216,10 +309,12 @@ mod tests {
     #[test]
     fn normal_types() {
         is_config::<RpmNotchFilterBankConfig>();
+        is_full::<RpmNotchFilterFrequencies>();
+        is_full::<RpmNotchFilterBankContext>();
         is_full::<RpmNotchFilterBank>();
     }
     #[test]
-    fn new() {
+    fn test_new() {
         let config = RpmNotchFilterBankConfig::new();
         assert_eq!(50, config.rpm_filter_fade_range_hz);
     }
